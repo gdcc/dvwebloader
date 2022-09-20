@@ -39,7 +39,7 @@ var apiKey;
 
 $(document).ready(function() {
     queryParams = new URLSearchParams(window.location.search.substring(1));
-    siteUrl = queryParams.get("siteUrl")+"/";
+    siteUrl = queryParams.get("siteUrl");
 console.log(siteUrl);
     datasetPid = queryParams.get("datasetPid");
 console.log('PID: ' + datasetPid);
@@ -580,7 +580,7 @@ entry.mimeType='application/octet-stream';
 let fd = new FormData();
 fd.append('jsonData', JSON.stringify(body));
                 $.ajax({
-                    url: siteUrl + 'api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
+                    url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
                     headers: {"X-Dataverse-key": apiKey},
                     type: 'POST',
 enctype: 'multipart/form-data',
