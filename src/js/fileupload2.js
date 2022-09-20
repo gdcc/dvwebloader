@@ -39,7 +39,7 @@ var apiKey;
 
 $(document).ready(function() {
     queryParams = new URLSearchParams(window.location.search.substring(1));
-    siteUrl = queryParams.get("siteUrl");
+    siteUrl = queryParams.get("siteUrl")+"/";
 console.log(siteUrl);
     datasetPid = queryParams.get("datasetPid");
 console.log('PID: ' + datasetPid);
