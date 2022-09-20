@@ -1,0 +1,27 @@
+<html>
+	<head>
+<link type="text/css" rel="stylesheet" href="css/dvwebloader.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/core.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/md5.js"></script>
+		<script src="js/fileupload2.js"></script>
+	</head>
+	<body>
+<div id="top"><label for='files' class='button'>Select  a Directory<input type="file" id="files" name="files[]" multiple webkitdirectory style="display:none"/></label></div>
+		<div id="filelist"></div>
+	<script>
+		var input = document.getElementById('files');
+
+input.onchange = function(e) {
+	  var files = e.target.files; // FileList
+	    for (var i = 0, f; f = files[i]; ++i){
+		    queueFileForDirectUpload(f);
+		    console.debug(files[i].webkitRelativePath);
+$('#filelist').append($('<div/>').addClass('ui-fileupload-files').append($('<div/>').addClass('ui-fileupload-row').attr('upid', i).append($('<div/>').addClass('ui-fileupload-filename').text(files[i].webkitRelativePath)).append($('<div/>').text(files[i].size)).append($('<div/>').addClass('ui-fileupload-progress')).append($('<div/>').addClass('ui-fileupload-cancel'))));
+//		    output.innerText  = output.innerText + files[i].webkitRelativePath+"\n";
+      }
+}
+	</script>
+	</body>
+</html>
+
