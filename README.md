@@ -5,11 +5,11 @@ Hosted at https://gdcc.github.io/dvwebloader
 
 Current integration mechanism (subject to change):
 
-Install as a dataset-level Explore Tool
+Install as a dataset-level Explore Tool. **Note that dataset-level tools only appear once there is at least one file in the dataset, so with this launch mechanism, you must add one file to the dataset by other means in order to launch this tool.**
 
-
-
-{
+```bash
+curl -X POST -H 'Content-type: application/json' http://localhost:8080/api/admin/externalTools -d \
+'{
   "displayName": "Dataverse WebLoader",
   "description": "Upload all  the files in a local directory!",
   "toolName": "dvwebloader",
@@ -18,7 +18,6 @@ Install as a dataset-level Explore Tool
     "explore"
   ],
   "toolUrl": "https://gdcc.github.io/dvwebloader/src/dvwebloader.html",
-  "contentType": "text/tab-separated-values",
   "toolParameters": {
     "queryParameters": [
       {
@@ -32,9 +31,7 @@ Install as a dataset-level Explore Tool
       }
     ]
   }
-}
-
-
-curl -X POST -H 'Content-type: application/json' http://localhost:8080/api/admin/externalTools --upload-file dvwebloader.json
+}'
+```
 
 Sponsored by UiT/DataverseNO
