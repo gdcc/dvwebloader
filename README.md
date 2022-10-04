@@ -21,7 +21,7 @@ curl -X POST -H 'Content-type: application/json' http://localhost:8080/api/admin
   "description": "Upload all  the files in a local directory!",
   "toolName": "dvwebloader",
   "scope": "dataset",
-  "contentType":"text/plain"
+  "contentType":"text/plain",
   "types": [
     "explore"
   ],
