@@ -384,6 +384,7 @@ this.hashVal=md5;
         async cancelMPUpload() {
                $.ajax({
                         url: siteUrl + this.urls.abort,
+                        headers: {"X-Dataverse-key":apiKey},
                         type: 'DELETE',
                         context:this,
                         cache: false,
@@ -406,6 +407,7 @@ this.hashVal=md5;
                $.ajax({
                         url: siteUrl + this.urls.complete,
                         type: 'PUT',
+                        headers: {"X-Dataverse-key":apiKey},
                         context:this,
                         data: JSON.stringify(eTagsObject),
                         cache: false,
