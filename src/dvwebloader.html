@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>Dataverse Webloader</title>
+        <title>Dataverse WebLoader</title>
         <link type="text/css" rel="stylesheet" href="css/dvwebloader.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/core.js"></script>
@@ -8,10 +8,12 @@
         <script src="js/fileupload2.js"></script>
     </head>
     <body>
+        <div id='help'><a href='https://github.com/gdcc/dvwebloader/wiki/DVWebloader---a-bulk-file-uploader-for-Dataverse' target='_blank'>Help/Tutorial</a></div>
         <div id="top"><label for='files' class='button'>Select  a Directory<input type="file" id="files" name="files[]" multiple webkitdirectory style="display:none"/></label>
             <div id='messages'></div>
         </div>
         <div id="filelist"></div>
+        <div id="credit"><a href='https://github.com/gdcc/dvwebloader' target='_blank'>DVWebloader v0.2</a>, development sponsored by UiT/DataverseNO</div>
         <script>
             var input = document.getElementById('files');
 
@@ -21,7 +23,7 @@
                     let f = files[i];
                     queueFileForDirectUpload(f);
                     console.debug(files[i].webkitRelativePath);
-                    //		    output.innerText  = output.innerText + files[i].webkitRelativePath+"\n";
+                    //              output.innerText  = output.innerText + files[i].webkitRelativePath+"\n";
                 }
             };
         </script>
