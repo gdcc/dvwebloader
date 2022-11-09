@@ -41,6 +41,8 @@ var datasetPid;
 var apiKey;
 var existingFiles;
 var convertedFileNameMap;
+var queryParams;
+
 $(document).ready(function () {
     queryParams = new URLSearchParams(window.location.search.substring(1));
     siteUrl = queryParams.get("siteUrl");
@@ -50,9 +52,8 @@ $(document).ready(function () {
     apiKey = queryParams.get("key");
     console.log(apiKey);
     directUploadEnabled = true;
-    if (!retrieveDatasetInfo()) {
-        $('.files').prop('disabled', 'true');
-    }
+    addMessage('info', 'Getting Dataset Information...');
+    retrieveDatasetInfo();
     var input = document.getElementById('files');
     input.onchange = function (e) {
         var files = e.target.files; // FileList
@@ -63,14 +64,22 @@ $(document).ready(function () {
             console.debug(files[i].webkitRelativePath);
             //              output.innerText  = output.innerText + files[i].webkitRelativePath+"\n";
         }
-        if (rawFileMap.length === 0) {
-            $('#top').append($('<div/>').addClass('info').text('All files already exist in dataset. There\'s nothing to upload.'));
+        let numExists = $('#filelist>.ui-fileupload-files .file-exists').length;
+        let totalFiles = Object.keys(rawFileMap).length;
+        console.log('exists: ' + numExists);
+        console.log('rawFileMap len: ' + totalFiles);
+        if (totalFiles === numExists) {
+            addMessage('info', 'All files already exist in dataset. There\'s nothing to upload.');
         } else
-        if (rawFileMap.length < files.length) {
-            $('#top').append($('<div/>').addClass('info').text('Some files already exist in dataset. Only checked files will be uploaded.'));
+        if (numExists !== 0 && totalFiles > numExists) {
+            addMessage('info', 'Some files already exist in dataset. Only checked files will be uploaded.');
         }
-    }
+        $('label.button').hide();
+    };
 });
+function addMessage(type, text) {
+    $('#messages').html('').append($('<div/>').addClass(type).text(text));
+}
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
     var title = "";
@@ -103,7 +112,7 @@ async function populatePageMetadata(data) {
 
 async function retrieveDatasetInfo() {
     $.ajax({
-        url: siteUrl + '/api/datasets/:persistentId//versions/:latest?persistentId=' + datasetPid,
+        url: siteUrl + '/api/datasets/:persistentId/versions/:latest?persistentId=' + datasetPid,
         headers: {"X-Dataverse-key": apiKey},
         type: 'GET',
         context: this,
@@ -139,6 +148,8 @@ async function retrieveDatasetInfo() {
                     }
                 }
             }
+            $('#files').prop('disabled', false);
+            addMessage('info', 'Ready. Click Select a Directory. Review the selected files. Start Uploads. (Note - selection dialog will not show files, but they will be shown aftterwards on the page.) ');
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.log('Failure: ' + jqXHR.status);
@@ -164,7 +175,7 @@ function setupDirectUpload(enabled) {
                 }
             }, {once: false});
         }
-        //Add support for drag and drop. Since the fileUploadForm is not replaced by PF, catching changes with a mutationobserver isn't needed
+//Add support for drag and drop. Since the fileUploadForm is not replaced by PF, catching changes with a mutationobserver isn't needed
         var fileDropWidget = document.getElementById('datasetForm:fileUpload');
         fileDropWidget.addEventListener('drop', function (event) {
             fileList = [];
@@ -534,9 +545,9 @@ var fileUpload = class fileUploadClass {
         //inDataverseCall = true;
         //storageId is not the location - has a : separator and no path elements from dataset
         //(String uploadComponentId, String fullStorageIdentifier, String fileName, String contentType, String checksumType, String checksumValue)
-        //handleExternalUpload([{ name: 'uploadComponentId', value: 'datasetForm:fileUpload' }, { name: 'fullStorageIdentifier', value: this.storageId }, { name: 'fileName', value: this.file.name }, { name: 'contentType', value: this.file.type }, { name: 'checksumType', value: 'MD5' }, { name: 'checksumValue', value: md5 }]);
+        //handleExternalUpload([{ name: 'uploadComponentId', value: 'datasetForm:fileUpload' }, { name: 'fullStorageIdentifier', value: this.storageId },{ name: 'fileName', value: this.file.name }, { name: 'contentType', value: this.file.type }, { name: 'checksumType', value: 'MD5' }, { name: 'checksumValue', value: md5 }]);
     }
-}
+};
 
 
 function removeExtension(name) {
@@ -577,7 +588,9 @@ function queueFileForDirectUpload(file) {
     if (!send) {
         row.addClass('file-exists');
     }
-    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send)).append($('<div/>').addClass('ui-fileupload-filename').text(path)).append($('<div/>').text(file.size)).append($('<div/>').addClass('ui - fileupload - pr        ogress')).append($(' < div / > ').addClass('ui - fileupload - cancel'));
+    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send)).append($('<div/>').add
+            Class('ui-fileupload-filename').text(path)
+            ).append($('<div/>').text(file.size)).append($('<div/>').addClass('ui - fileupload - progress')).append($('<div/>').addClass('ui - fileupload - cancel'));
     console.log('adding click handler for file_' + fileBlock.children().length);
     $('#file_' + fileBlock.children().length).click(toggleUpload);
 }
@@ -589,22 +602,24 @@ function toggleUpload() {
     if ($('.ui-fileupload-row').children('input:checked').length !== 0) {
         console.log('yes');
         if ($('#upload').length === 0) {
-            $('<button/>').prop('id', 'upload').text('Start Uploads').click(startUploads).appendTo($('#top'));
+            $('<button/>').prop('id', 'upload').text('Start Uploads').addClass('button').click(startUploads).insertBefore($('#messages'));
+            addMessage('info', 'Checked files will be uploaded.');
         }
     } else {
         $('#upload').remove();
+        addMessage('info', 'No files to upload. Check some files, or refresh to start over.');
     }
 }
 
 function startUploads() {
     $('#top button').remove();
-    let rows = $('#filelist>.ui-fileupload-files').children();
-    for (let row in rows) {
-        let file = rawFileMap[row.child('.ui-fileupload-name').text];
+    let checked = $('#filelist>.ui-fileupload-files input:checked');
+    checked.each(function () {
+        console.log('Name ' + $(this).siblings('.ui-fileupload-filename').text());
+        let file = rawFileMap[$(this).siblings('.ui-fileupload-filename').text()];
         let fUpload = new fileUpload(file);
         fileList.push(fUpload);
-    }
-
+    });
     if (filesInProgress < 4 && fileList.length !== 0) {
         for (let j = 0; j < Math.min(4, fileList.length); j++) {
             filesInProgress = filesInProgress + 1;
@@ -699,7 +714,7 @@ async function directUploadFinished() {
     if (directUploadEnabled) {
         if (inList === 0) {
             if (total === numDone) {
-//   $('button[id$="AllUploadsFinished"]').trigger('click');
+                //   $('button[id$="AllUploadsFinished"]').trigger('click');
                 console.log("All files in S3");
                 $('#top').append($('<div/>').attr('id', 's3success').text('Uploads to S3 complete. Now registering all files with the dataset. This may take some time for large numbers of files.'));
                 let body = [];
@@ -770,12 +785,12 @@ async function directUploadFinished() {
 }
 
 async function uploadFailure(jqXHR, upid, filename) {
-// This handles HTTP errors (non-20x reponses) such as 0 (no connection at all), 413 (Request too large),
-// and 504 (Gateway timeout) where the upload call to the server fails (the server doesn't receive the request)
-// It notifies the user and provides info about the error (status, statusText)
-// On some browsers, the status is available in an event: window.event.srcElement.status
-// but others, (Firefox) don't support this. The calls below retrieve the status and other info
-// from the call stack instead (arguments to the fail() method that calls onerror() that calls this function
+    // This handles HTTP errors (non-20x reponses) such as 0 (no connection at all), 413 (Request too large),
+    // and 504 (Gateway timeout) where the upload call to the server fails (the server doesn't receive the request)
+    // It notifies the user and provides info about the error (status, statusText)
+    // On some browsers, the status is available in an event: window.event.srcElement.status
+    // but others, (Firefox) don't support this. The calls below retrieve the status and other info
+    // from the call stack instead (arguments to the fail() method that calls onerror() that calls this function
 
     if (directUploadEnabled) {
         await sleep(delay);
@@ -813,7 +828,7 @@ async function uploadFailure(jqXHR, upid, filename) {
         }
     }
 
-//statusText for error 0 is the unhelpful 'error'
+    //statusText for error 0 is the unhelpful 'error'
     if (status === 0)
         statusText = 'Network Error';
     //Log the error
@@ -831,7 +846,7 @@ async function uploadFailure(jqXHR, upid, filename) {
     //Add the error message to the correct row
     for (i = 0; i < rows.length; i++) {
         if (rows[i].getAttribute('upid') === id) {
-//Remove any existing error message/only show last error (have seen two error 0 from one network disconnect)
+            //Remove any existing error message/only show last error (have seen two error 0 from one network disconnect)
             var err = rows[i].getElementsByClassName('ui-fileupload-error');
             if (err.length !== 0) {
                 err[0].remove();
@@ -841,7 +856,7 @@ async function uploadFailure(jqXHR, upid, filename) {
         }
     }
     if (directUploadEnabled) {
-//Mark this file as processed and keep processing further files
+        //Mark this file as processed and keep processing further files
         directUploadFinished();
     }
 }
