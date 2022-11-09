@@ -716,7 +716,7 @@ async function directUploadFinished() {
             if (total === numDone) {
                 //   $('button[id$="AllUploadsFinished"]').trigger('click');
                 console.log("All files in S3");
-                $('#top').append($('<div/>').attr('id', 's3success').text('Uploads to S3 complete. Now registering all files with the dataset. This may take some time for large numbers of files.'));
+                addMessage('info', 'Uploads to S3 complete. Now registering all files with the dataset. This may take some time for large numbers of files.');
                 let body = [];
                 for (let i = 0; i < toRegisterFileList.length; i++) {
                     let fup = toRegisterFileList[i];
@@ -754,7 +754,7 @@ async function directUploadFinished() {
                     processData: false,
                     success: function (body, statusText, jqXHR) {
                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
-                        $('#top').append($('<div/>').attr('id', 'success').text('Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.'));
+                        addMessage('success', 'Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.');
                     },
                     error: function (jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);

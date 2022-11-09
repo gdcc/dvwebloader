@@ -37,7 +37,7 @@ label {
     text-decoration: none;
     margin: 20px;
 }
-#success {
+.success {
     background-color: lightgreen;
     padding: 10px;
 }
