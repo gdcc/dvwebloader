@@ -547,19 +547,18 @@ var fileUpload = class fileUploadClass {
         //(String uploadComponentId, String fullStorageIdentifier, String fileName, String contentType, String checksumType, String checksumValue)
         //handleExternalUpload([{ name: 'uploadComponentId', value: 'datasetForm:fileUpload' }, { name: 'fullStorageIdentifier', value: this.storageId },{ name: 'fileName', value: this.file.name }, { name: 'contentType', value: this.file.type }, { name: 'checksumType', value: 'MD5' }, { name: 'checksumValue', value: md5 }]);
     }
-};
-
-
-function removeExtension(name) {
-    let extIndex = name.indexOf(".");
-    let sepIndex = name.indexOf('/');
-    if (extIndex > sepIndex) {
-        return name.substring(0, extIndex);
-    } else {
-        return name;
-    }
-
 }
+;
+        function removeExtension(name) {
+            let extIndex = name.indexOf(".");
+            let sepIndex = name.indexOf('/');
+            if (extIndex > sepIndex) {
+                return name.substring(0, extIndex);
+            } else {
+                return name;
+            }
+
+        }
 function queueFileForDirectUpload(file) {
     if (fileList.length === 0) { //uploadWidgetDropRemoveMsg();
     }
@@ -588,9 +587,10 @@ function queueFileForDirectUpload(file) {
     if (!send) {
         row.addClass('file-exists');
     }
-    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send)).append($('<div/>').add
-            Class('ui-fileupload-filename').text(path)
-            ).append($('<div/>').text(file.size)).append($('<div/>').addClass('ui - fileupload - progress')).append($('<div/>').addClass('ui - fileupload - cancel'));
+    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send))
+            .append($('<div/>').addClass('ui-fileupload-filename').text(path))
+            .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui - fileupload - progress'))
+            .append($('<div/>').addClass('ui - fileupload - cancel'));
     console.log('adding click handler for file_' + fileBlock.children().length);
     $('#file_' + fileBlock.children().length).click(toggleUpload);
 }
