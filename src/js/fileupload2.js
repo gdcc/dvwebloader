@@ -149,7 +149,7 @@ async function retrieveDatasetInfo() {
                 }
             }
             $('#files').prop('disabled', false);
-            addMessage('info', 'Ready. Click Select a Directory. Review the selected files. Start Uploads. (Note - selection dialog will not show files, but they will be shown aftterwards on the page.) ');
+            addMessage('info', 'Ready. Click Select a Directory. Review the selected files. Start Uploads. (Note - selection dialog will not show files, but they will be shown afterwards on the page.) ');
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.log('Failure: ' + jqXHR.status);
