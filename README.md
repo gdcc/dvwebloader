@@ -3,7 +3,7 @@ A web tool for uploading folders of files to a Dataverse dataset
 
 Hosted at https://gdcc.github.io/dvwebloader
 
-Current integration mechanism (subject to change):
+Current integration mechanism (will change with Dataverse v5.13):
 
 Install as a dataset-level Explore Tool. The tool will appear in the Dataset Access menu:
 ![image](https://user-images.githubusercontent.com/6731983/192796802-c358b6df-c09b-4efc-9bd2-e3dda0adb0e1.png)
