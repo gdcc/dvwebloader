@@ -55,3 +55,15 @@ label {
 #help {
     float:right;
 }
+#logo {
+    display: inline-block;
+    margin: 10px 10px 10px 40px;
+    width: 240px;
+    min-height: 120px;
+    vertical-align: middle;
+}
+h1 {
+    text-align: center;
+    width: 58%;
+    display:inline-block;
+}
