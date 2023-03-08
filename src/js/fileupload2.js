@@ -16,6 +16,9 @@ var UploadState = {
 //true indicates direct upload is being used, but cancel may set it back to false at which point direct upload functions should not do further work
 var directUploadEnabled = false;
 var directUploadReport = true;
+
+var checksumAlgName;
+
 //How many files have started being processed but aren't yet being uploaded
 var filesInProgress = 0;
 //The # of the current file being processed (total number of files for which upload has at least started)
@@ -54,7 +57,23 @@ $(document).ready(function () {
     console.log(apiKey);
     directUploadEnabled = true;
     addMessage('info', 'Getting Dataset Information...');
+            fetch("api/files/fixityAlgorithm")
+            .then((response) => {
+                if (!response.ok) {
+                    console.log("Did not get fixityAlgorithm from Dataverse, using MD5");
+                    return null;
+                } else {
+                    return response.json();
+                }
+            }).then(checksumAlgJson => {
+                checksumAlgName = "MD5";
+                if (checksumAlgJson != null) {
+                    checksumAlgName = checksumAlgJson.data.message;
+                }
+            })
+            .then(() => {
     retrieveDatasetInfo();
+    });
     var input = document.getElementById('files');
     input.onchange = function (e) {
         var files = e.target.files; // FileList
@@ -397,7 +416,6 @@ var fileUpload = class fileUploadClass {
                 },
                 xhr: function () {
                     var myXhr = $.ajaxSettings.xhr();
-//var myXhr = new window.XMLHttpRequest();
                     if (myXhr.upload) {
                         myXhr.upload.addEventListener('progress', function (e) {
                             if (e.lengthComputable) {
@@ -526,17 +544,17 @@ var fileUpload = class fileUploadClass {
         this.state = UploadState.UPLOADED;
         console.log('S3 Upload complete for ' + this.file.name + ' : ' + this.storageId);
         if (directUploadReport) {
-            this.hashAlg = 'MD5';
-            getMD5(this.file, prog => {
+
+            getChecksum(this.file, prog => {
                 var current = 1 + prog;
                 $('[upid="' + this.id + '"] progress').attr({
                     value: current,
                     max: 2
                 });
-            }).then(md5 => {
-                console.log('md5 done');
-                this.hashVal = md5;
-                this.handleDirectUpload(md5);
+            }).then(checksum => {
+                console.log('checksum done');
+                this.hashVal = checksum;
+                this.handleDirectUpload();
             }, err => console.error(err));
         } else {
             console.log("Abandoned: " + this.storageId);
@@ -583,20 +601,14 @@ var fileUpload = class fileUploadClass {
         });
     }
 
-    async handleDirectUpload(md5) {
+    async handleDirectUpload() {
         this.state = UploadState.HASHED;
         //Wait for each call to finish and update the DOM
-        console.log('handling');
         while (inDataverseCall === true) {
             await sleep(delay);
         }
-        console.log('handling2');
         toRegisterFileList.push(this);
         directUploadFinished();
-        //inDataverseCall = true;
-        //storageId is not the location - has a : separator and no path elements from dataset
-        //(String uploadComponentId, String fullStorageIdentifier, String fileName, String contentType, String checksumType, String checksumValue)
-        //handleExternalUpload([{ name: 'uploadComponentId', value: 'datasetForm:fileUpload' }, { name: 'fullStorageIdentifier', value: this.storageId },{ name: 'fileName', value: this.file.name }, { name: 'contentType', value: this.file.type }, { name: 'checksumType', value: 'MD5' }, { name: 'checksumValue', value: md5 }]);
     }
 }
 ;
@@ -711,6 +723,9 @@ function removeErrors() {
 }
 
 var observer = null;
+
+// uploadStarted and uploadFinished are not related to direct upload.
+// They deal with clearing old errors and watching for new ones and then signaling when all uploads are done
 function uploadStarted() {
     // If this is not the first upload, remove error messages since
     // the upload of any files that failed will be tried again.
@@ -782,7 +797,7 @@ async function directUploadFinished() {
                         entry.directoryLabel = path;
                     }
                     entry.checksum = {};
-                    entry.checksum['@type'] = fup.hashAlg;
+                    entry.checksum['@type'] = checksumAlgName;
                     entry.checksum['@value'] = fup.hashVal;
                     entry.mimeType = fup.file.type;
                     if (entry.mimeType === '') {
@@ -942,12 +957,29 @@ function readChunked(file, chunkCallback, endCallback) {
     }
     readNext();
 }
+function getChecksum(blob, cbProgress) {
+        return new Promise((resolve, reject) => {
 
-function getMD5(blob, cbProgress) {
-    return new Promise((resolve, reject) => {
-        var md5 = CryptoJS.algo.MD5.create();
+        var checksumAlg; 
+                        switch (checksumAlgName) {
+                    case 'MD5':
+                        checksumAlg = CryptoJS.algo.MD5.create();
+                        break;
+                    case 'SHA-1':
+                        checksumAlg = CryptoJS.algo.SHA1.create();
+                        break;
+                    case 'SHA-256':
+                        checksumAlg = CryptoJS.algo.SHA256.create();
+                        break;
+                    case 'SHA-512':
+                        checksumAlg = CryptoJS.algo.SHA512.create();
+                        break;
+                    default:
+                        console.log('$(checksumAlgName) is not supported, using MD5 as the checksumAlg checksum Algorithm');
+                                checksumAlg = CryptoJS.algo.MD5.create();
+                }
         readChunked(blob, (chunk, offs, total) => {
-            md5.update(CryptoJS.enc.Latin1.parse(chunk));
+                        checksumAlg.update(CryptoJS.enc.Latin1.parse(chunk));
             if (cbProgress) {
                 cbProgress(offs / total);
             }
@@ -956,7 +988,7 @@ function getMD5(blob, cbProgress) {
                 reject(err);
             } else {
                 // TODO: Handle errors
-                var hash = md5.finalize();
+                                var hash = checksumAlg.finalize();
                 var hashHex = hash.toString(CryptoJS.enc.Hex);
                 resolve(hashHex);
             }
