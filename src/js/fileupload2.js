@@ -723,7 +723,7 @@ async function uploadFileDirectly(urls, storageId, filesize) {
         var upload = null;
         //As long as we have the right file size, we're OK
         for (i = 0; i < fileList.length; i++) {
-            if (fileList[i].file.size === filesize) {
+            if (fileList[i].file.size == filesize) {
                 upload = fileList.splice(i, 1)[0];
                 break;
             }
@@ -825,7 +825,7 @@ async function directUploadFinished() {
                     entry.checksum['@type'] = checksumAlgName;
                     entry.checksum['@value'] = fup.hashVal;
                     entry.mimeType = fup.file.type;
-                    if (entry.mimeType === '') {
+                    if (entry.mimeType == '') {
                         entry.mimeType = 'application/octet-stream';
                     }
                     body.push(entry);
