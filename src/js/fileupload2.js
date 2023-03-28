@@ -54,7 +54,6 @@ $(document).ready(function() {
     datasetPid = queryParams.get("datasetPid");
     console.log('PID: ' + datasetPid);
     apiKey = queryParams.get("key");
-    console.log(apiKey);
     directUploadEnabled = true;
     addMessage('info', 'Getting Dataset Information...');
     fetch(siteUrl + "/api/files/fixityAlgorithm")
