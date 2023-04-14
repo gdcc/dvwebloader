@@ -3,7 +3,21 @@ A web tool for uploading folders of files to a Dataverse dataset
 
 Hosted at https://gdcc.github.io/dvwebloader
 
-Current integration mechanism (will change with Dataverse v5.13):
+### Current integration mechanism (v5.13+):
+
+Configure dvwebloader as an integrated [UploadMethod](https://guides.dataverse.org/en/latest/installation/config.html#uploadmethods):
+
+`curl -X PUT -d 'native/http,dvwebloader' http://localhost:8080/api/admin/settings/:UploadMethods`
+
+Point Dataverse at the appropriate dvwebloader URL (the GDCC GitHub copy is used here):
+
+`curl -X PUT -d 'https://gdcc.github.io/dvwebloader/src/dvwebloader.html' http://localhost:8080/api/admin/settings/:WebloaderUrl`
+
+Once these settings are in place, an "Upload a Folder" button should appear on a given dataset's file upload page, provided that the dataset lives in S3 storage with direct-upload enabled.
+
+Note that dvwebloader does not currently detect whether a user's API token is expired or even extant. If the page appears to hang while `Getting Dataset Information...` check your API token.
+
+### External Tool Setup for Dataverse 5.12 and below:
 
 Install as a dataset-level Explore Tool. The tool will appear in the Dataset Access menu:
 ![image](https://user-images.githubusercontent.com/6731983/192796802-c358b6df-c09b-4efc-9bd2-e3dda0adb0e1.png)
@@ -14,7 +28,7 @@ As of now, the best way to debug issues/failures is to open the browser develop 
 
 To install, copy/paste the curl command below and run it on your Dataverse machine:
 
-```bash
+```
 curl -X POST -H 'Content-type: application/json' http://localhost:8080/api/admin/externalTools -d \
 '{
   "displayName": "Dataverse WebLoader",
