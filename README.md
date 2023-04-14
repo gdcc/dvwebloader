@@ -1,5 +1,5 @@
 # dvwebloader
-A web tool for uploading folders of files to a Dataverse dataset
+A web tool for uploading folders of files to a Dataverse dataset. See [the wiki](https://github.com/gdcc/dvwebloader/wiki) for further details.
 
 Hosted at https://gdcc.github.io/dvwebloader
 
