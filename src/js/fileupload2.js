@@ -226,7 +226,7 @@ async function retrieveDatasetInfo() {
                     let df = entry.dataFile;
                     let convertedFile = false;
                     if (("originalFileFormat" in df)
-                        && (!df.contentType.equals(df.originalFileFormat))) {
+                        && (!df.contentType === df.originalFileFormat)) {
                         console.log("The file named " + df.getString("filename")
                             + " on the server was created by Dataverse's ingest process from an original uploaded file");
                         convertedFile = true;
