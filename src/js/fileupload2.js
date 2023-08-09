@@ -1,3 +1,5 @@
+import getLocalizedString from './lang.js';
+
 var fileList = [];
 var rawFileMap = {};
 var toRegisterFileList = [];
@@ -42,6 +44,7 @@ var apiKey;
 var existingFiles;
 var convertedFileNameMap;
 var queryParams;
+var dvLocale;
 
 $(document).ready(function () {
     queryParams = new URLSearchParams(window.location.search.substring(1));
@@ -51,8 +54,11 @@ $(document).ready(function () {
     console.log('PID: ' + datasetPid);
     apiKey = queryParams.get("key");
     console.log(apiKey);
+    dvLocale = queryParams.get("dvLocale");
+    console.log('locale: ' + dvLocale);
     directUploadEnabled = true;
-    addMessage('info', 'Getting Dataset Information...');
+    initTranslation();
+    addMessage('info', 'msgGettingDatasetInfo');
     retrieveDatasetInfo();
     var input = document.getElementById('files');
     input.onchange = function (e) {
@@ -69,24 +75,31 @@ $(document).ready(function () {
         console.log('exists: ' + numExists);
         console.log('rawFileMap len: ' + totalFiles);
         if (totalFiles === numExists) {
-            addMessage('info', 'All files already exist in dataset. There\'s nothing to upload.');
+            addMessage('info', 'msgFilesAlreadyExist');
         } else
         if (numExists !== 0 && totalFiles > numExists) {
-            addMessage('info', 'Some files already exist in dataset. Only checked files will be uploaded.');
+            addMessage('info', 'msgUploadOnlyCheckedFiles');
         }
         $('label.button').hide();
     };
 });
-function addMessage(type, text) {
-    $('#messages').html('').append($('<div/>').addClass(type).text(text));
+function initTranslation() {
+    initSpanTxt('select-dir-text', 'selectDir');
+    initSpanTxt('help-tutorial-text', 'helpTutorial');
+    initSpanTxt('sponsor-text', 'sponsor');
+}
+function initSpanTxt(htmlId, key) {
+    $('#'+htmlId).text(getLocalizedString(dvLocale, key));
+}
+function addMessage(type, key) {
+    $('#messages').html('').append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
 }
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
     var title = "";
     var authors = "";
-    datasetUrl = data.storageIdentifier;
-    datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid;
-    version = queryParams.get("datasetversion");
+    var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid;
+    var version = queryParams.get("datasetversion");
     if (version === ":draft") {
         version = "DRAFT";
     }
@@ -106,7 +119,7 @@ async function populatePageMetadata(data) {
             }
         }
     }
-    let mdDiv = $('<div/>').append($('<h1/>').text("Uploading to ").append($('<a/>').prop("href", datasetUrl).prop('target', '_blank').text(title)));
+    let mdDiv = $('<div/>').append($('<h1/>').text(getLocalizedString(dvLocale, 'uploadingTo')).append($('<a/>').prop("href", datasetUrl).prop('target', '_blank').text(title)));
     $('#top').prepend(mdDiv);
 }
 
@@ -149,7 +162,7 @@ async function retrieveDatasetInfo() {
                 }
             }
             $('#files').prop('disabled', false);
-            addMessage('info', 'Ready. Click Select a Directory. Review the selected files. Start Uploads. (Note - selection dialog will not show files, but they will be shown afterwards on the page.) ');
+            addMessage('info', 'msgReadyToStart');
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.log('Failure: ' + jqXHR.status);
@@ -576,7 +589,7 @@ function queueFileForDirectUpload(file) {
     //startUploads();
     if (send) {
         if ($('#upload').length === 0) {
-            $('<button/>').prop('id', 'upload').text('Start Uploads').addClass('button').click(startUploads).appendTo($('#top'));
+            $('<button/>').prop('id', 'upload').text(getLocalizedString(dvLocale, 'startUpload')).addClass('button').click(startUploads).appendTo($('#top'));
         }
     }
     let fileBlock = $('#filelist>.ui-fileupload-files');
@@ -602,12 +615,12 @@ function toggleUpload() {
     if ($('.ui-fileupload-row').children('input:checked').length !== 0) {
         console.log('yes');
         if ($('#upload').length === 0) {
-            $('<button/>').prop('id', 'upload').text('Start Uploads').addClass('button').click(startUploads).insertBefore($('#messages'));
-            addMessage('info', 'Checked files will be uploaded.');
+            $('<button/>').prop('id', 'upload').text(getLocalizedString(dvLocale, 'startUpload')).addClass('button').click(startUploads).insertBefore($('#messages'));
+            addMessage('info', 'msgStartUpload');
         }
     } else {
         $('#upload').remove();
-        addMessage('info', 'No files to upload. Check some files, or refresh to start over.');
+        addMessage('info', 'msgNoFile');
     }
 }
 
@@ -634,7 +647,7 @@ async function uploadFileDirectly(urls, storageId, filesize) {
     if (directUploadEnabled) {
         var upload = null;
         //As long as we have the right file size, we're OK
-        for (i = 0; i < fileList.length; i++) {
+        for (let i = 0; i < fileList.length; i++) {
             if (fileList[i].file.size === filesize) {
                 upload = fileList.splice(i, 1)[0];
                 break;
@@ -654,7 +667,7 @@ async function uploadFileDirectly(urls, storageId, filesize) {
 
 function removeErrors() {
     var errors = document.getElementsByClassName("ui-fileupload-error");
-    for (i = errors.length - 1; i >= 0; i--) {
+    for (let i = errors.length - 1; i >= 0; i--) {
         errors[i].parentNode.removeChild(errors[i]);
     }
 }
@@ -668,7 +681,7 @@ function uploadStarted() {
     //Find the upload table body
     var files = $('.ui-fileupload-files .ui-fileupload-row');
     //Add an id attribute to each entry so we can later match errors with the right entry
-    for (i = 0; i < files.length; i++) {
+    for (let i = 0; i < files.length; i++) {
         files[i].setAttribute('upid', curId);
         curId = curId + 1;
     }
@@ -677,7 +690,7 @@ function uploadStarted() {
     var callback = function (mutations) {
         //Add an id attribute to all new entries
         mutations.forEach(function (mutation) {
-            for (i = 0; i < mutation.addedNodes.length; i++) {
+            for (let i = 0; i < mutation.addedNodes.length; i++) {
                 mutation.addedNodes[i].setAttribute('upid', curId);
                 curId = curId + 1;
             }
@@ -716,7 +729,7 @@ async function directUploadFinished() {
             if (total === numDone) {
                 //   $('button[id$="AllUploadsFinished"]').trigger('click');
                 console.log("All files in S3");
-                addMessage('info', 'Uploads to S3 complete. Now registering all files with the dataset. This may take some time for large numbers of files.');
+                addMessage('info', 'msgUploadCompleteRegistering');
                 let body = [];
                 for (let i = 0; i < toRegisterFileList.length; i++) {
                     let fup = toRegisterFileList[i];
@@ -754,7 +767,7 @@ async function directUploadFinished() {
                     processData: false,
                     success: function (body, statusText, jqXHR) {
                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
-                        addMessage('success', 'Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.');
+                        addMessage('success', 'msgUploadComplete');
                     },
                     error: function (jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
@@ -771,7 +784,7 @@ async function directUploadFinished() {
         } else {
             if ((inProgress < 4) && (inProgress < inList)) {
                 filesInProgress = filesInProgress + 1;
-                for (i = 0; i < fileList.length; i++) {
+                for (let i = 0; i < fileList.length; i++) {
                     if (fileList[i].state === UploadState.QUEUED) {
                         fileList[i].startRequestForDirectUploadUrl();
                         break;
@@ -844,7 +857,7 @@ async function uploadFailure(jqXHR, upid, filename) {
     var textnode = document.createTextNode("Upload unsuccessful (" + status + ": " + statusText + ").");
     node.appendChild(textnode);
     //Add the error message to the correct row
-    for (i = 0; i < rows.length; i++) {
+    for (let i = 0; i < rows.length; i++) {
         if (rows[i].getAttribute('upid') === id) {
             //Remove any existing error message/only show last error (have seen two error 0 from one network disconnect)
             var err = rows[i].getElementsByClassName('ui-fileupload-error');
