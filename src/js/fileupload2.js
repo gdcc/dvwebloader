@@ -1,3 +1,5 @@
+import getLocalizedString from './lang.js';
+
 var fileList = [];
 var rawFileMap = {};
 var toRegisterFileList = [];
@@ -174,6 +176,7 @@ function addIconAndLogo(siteUrl) {
 
 }
 function initTranslation() {
+    initSpanTxt('title-text', 'title');
     initSpanTxt('select-dir-text', 'selectDir');
     initSpanTxt('help-tutorial-text', 'helpTutorial');
     initSpanTxt('sponsor-text', 'sponsor');
@@ -289,7 +292,7 @@ function setupDirectUpload(enabled) {
         var config = { childList: true };
         var callback = function(mutations) {
             mutations.forEach(function(mutation) {
-                for (i = 0; i < mutation.addedNodes.length; i++) {
+                for (let i = 0; i < mutation.addedNodes.length; i++) {
                     //Add a listener on any replacement file 'select' widget
                     if (mutation.addedNodes[i].id === 'datasetForm:fileUpload_input') {
                         fileInput = mutation.addedNodes[i];
@@ -851,7 +854,7 @@ async function directUploadFinished() {
                     processData: false,
                     success: function(body, statusText, jqXHR) {
                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
-                        addMessage('success', 'Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.');
+                        addMessage('success', 'msgUploadComplete');
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
@@ -868,7 +871,7 @@ async function directUploadFinished() {
         } else {
             if ((inProgress < 4) && (inProgress < inList)) {
                 filesInProgress = filesInProgress + 1;
-                for (i = 0; i < fileList.length; i++) {
+                for (let i = 0; i < fileList.length; i++) {
                     if (fileList[i].state === UploadState.QUEUED) {
                         fileList[i].startRequestForDirectUploadUrl();
                         break;

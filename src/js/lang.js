@@ -1,6 +1,7 @@
 const defaultLocale = 'en';
 const translations = {
     en: {
+        title: "Folder Upload",
         selectDir: "Select  a Directory",
         helpTutorial: "Help/Tutorial",
         sponsor: ", development sponsored by UiT/DataverseNO",
@@ -16,6 +17,7 @@ const translations = {
         msgUploadComplete: "Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.",
     },
     fr: {
+        title: "Envoi d'un dossier",
         selectDir: "Sélectionner un répertoire",
         helpTutorial: "Aide/Tutoriel",
         sponsor: ", développement sponsorisé par UiT/DataverseNO",
