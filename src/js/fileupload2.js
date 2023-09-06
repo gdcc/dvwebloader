@@ -225,13 +225,16 @@ function initTranslation() {
 function initSpanTxt(htmlId, key) {
     $('#'+htmlId).text(getLocalizedString(dvLocale, key));
 }
-function addMessage(type, key, details) {
+function addMessage(type, key, ...keyArgs) {
+    let msg = getLocalizedString(dvLocale, key);
+		
+		if(keyArgs && Array.isArray(keyArgs)) {
+		    for (var i = 0; i < keyArgs.length; i++) {
+		        msg = msg.replaceAll('{'+i+'}',keyArgs[i]);
+		    }
+		}
     $('#messages').html('')
-        .append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
-    
-    if (details) {
-        $('#messages').append($('<div/>').addClass(type).addClass(type + '-details').text(details));
-    }
+        .append($('<div/>').addClass(type).text(msg));
 }
 
 async function populatePageMetadata(data) {
@@ -965,11 +968,12 @@ async function directUploadFinished() {
                     data: fd,
                     processData: false,
                     success: function(body, statusText, jqXHR) {
-                        console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
+                        var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=DRAFT';
+                        console.log("All files sent to " + datasetUrl);
                         if(draftExists) {
                           addMessage('success', 'msgUploadComplete');
                         } else {
-                          addMessage('success', 'msgUploadCompleteNewDraft');
+                          addMessage('success', 'msgUploadCompleteNewDraft', datasetUrl);
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
