@@ -14,7 +14,7 @@ const translations = {
         msgStartUpload: "Checked files will be uploaded.",
         msgNoFile: "No files to upload. Check some files, or refresh to start over.",
         msgUploadCompleteRegistering: "Uploads to S3 complete. Now registering all files with the dataset. This may take some time for large numbers of files.",
-        msgUploadComplete: "Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.",
+        msgUploadComplete: "Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files : <a href=\"{0}\">{0}</a>",
     },
     fr: {
         title: "Envoi d'un dossier",
@@ -30,17 +30,23 @@ const translations = {
         msgStartUpload: "Les fichiers cochés seront envoyés.",
         msgNoFile: "Aucun fichier à envoyer. Cochez certains fichiers ou rafraîchissez la page pour recommencer.",
         msgUploadCompleteRegistering: "Envois vers S3 terminés. Enregistrement de tous les fichiers en cours dans le jeu de données. Cela peut prendre du temps pour un grand nombre de fichiers.",
-        msgUploadComplete: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre et rafraîchissez la page de votre jeu de données pour voir les fichiers envoyés.",
+        msgUploadComplete: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre et rafraîchissez la page de votre jeu de données pour voir les fichiers envoyés : <a href=\"{0}\">{0}</a>",
     },
 };
 
-export default function getLocalizedString(locale, key) {
+export default function getLocalizedString(locale, key, keyArgs) {
     if(!locale || !translations[locale]) {
         locale = defaultLocale;
         console.log('getLocalizedString - locale empty or unknown, using defaultLocale: '+defaultLocale)
     }
     if (translations[locale] && translations[locale][key]) {
-        return translations[locale][key];
+        var tr = translations[locale][key];
+        if(keyArgs && Array.isArray(keyArgs)) {
+            for (var i = 0; i < keyArgs.length; i++) {
+                tr = tr.replaceAll('{'+i+'}',keyArgs[i]);
+            }
+        }
+        return tr;
     }
     console.log('getLocalizedString - transalation not found with locale: '+locale+' and key:'+key);
     return key;
