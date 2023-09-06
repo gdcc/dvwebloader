@@ -184,8 +184,8 @@ function initTranslation() {
 function initSpanTxt(htmlId, key) {
     $('#'+htmlId).text(getLocalizedString(dvLocale, key));
 }
-function addMessage(type, key) {
-    $('#messages').html('').append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
+function addMessage(type, key, ...keyArgs) {
+    $('#messages').html('').append($('<div/>').addClass(type).html(getLocalizedString(dvLocale, key, keyArgs)));
 }
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
@@ -853,8 +853,9 @@ async function directUploadFinished() {
                     data: fd,
                     processData: false,
                     success: function(body, statusText, jqXHR) {
-                        console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
-                        addMessage('success', 'msgUploadComplete');
+                        var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=DRAFT';
+                        console.log("All files sent to " + datasetUrl);
+                        addMessage('success', 'msgUploadComplete', datasetUrl);
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
