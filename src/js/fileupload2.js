@@ -188,6 +188,10 @@ function initSpanTxt(htmlId, key) {
 function addMessage(type, key) {
     $('#messages').html('').append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
 }
+function appendMessage(type, text) {
+    $('#messages').append($('<div/>').addClass(type).text(text));
+}
+
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
     var title = "";
@@ -686,8 +690,18 @@ function queueFileForDirectUpload(file) {
     if (!send) {
         row.addClass('file-exists');
     }
-    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send))
-        .append($('<div/>').addClass('ui-fileupload-filename').text(path))
+    let badChars = !(fUpload.file.name.match(/[[\/:*?|;#]/)===null);
+    if(badChars) {
+      if($('.warn').length==0) {
+        appendMessage('warn','The highlighted file(s) below contain one or more disallowed characters (/;:|?*#) in their filename. Disallowed characters will be replaced by an underscore (_) if the file(s) are uploaded.');
+      }
+    }
+    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send));
+    let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(path);
+    if(badChars) {
+      fnameElement.addClass('badchars');
+    }
+    row.append(fnameElement)
         .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui - fileupload - progress'))
         .append($('<div/>').addClass('ui - fileupload - cancel'));
     console.log('adding click handler for file_' + fileBlock.children().length);
@@ -824,7 +838,7 @@ async function directUploadFinished() {
                     console.log(fup.file.webkitRelativePath + ' : ' + fup.storageId);
                     let entry = {};
                     entry.storageIdentifier = fup.storageId;
-                    entry.fileName = fup.file.name;
+                    entry.fileName = fup.file.name.replace(/[\/:*?|;#]/g,'_');
                     let path = fup.file.webkitRelativePath;
                     console.log(path);
                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
