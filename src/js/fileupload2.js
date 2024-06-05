@@ -668,7 +668,7 @@ function queueFileForDirectUpload(file) {
     console.log("Original Path: " + origPath);
     //Remove filename part
     let path =origPath.substring(0, origPath.length - file.name.length);
-    let badPath = (path.match(/^[a-zA-Z0-9_\-\.\\\/ ]*$/)===null);
+    let badPath = (path.match(/^[\w\d_\-\.\\\/ ]*$/)===null);
     if(badPath) {
       if($('.warn').length==0) {
         addMessage('warn', 'msgRequiredPathOrFileNameChange');
@@ -709,7 +709,7 @@ function queueFileForDirectUpload(file) {
     }
     row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send));
     let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(origPath);
-    if(badChars) {
+    if(badPath || badChars) {
       fnameElement.addClass('badchars');
     }
     row.append(fnameElement)
