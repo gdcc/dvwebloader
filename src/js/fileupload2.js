@@ -82,23 +82,23 @@ $(document).ready(function() {
 
             switch (checksumAlgName) {
                 case 'MD5':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/md5.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/md5.js";
                     break;
                 case 'SHA-1':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/sha1.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/sha1.js";
                     break;
                 case 'SHA-256':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/sha256.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/sha256.js";
                     break;
                 case 'SHA-512':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/x64-core.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/x64-core.js";
                     head.appendChild(js);
                     js = document.createElement("script");
                     js.type = "text/javascript";
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/sha512.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/sha512.js";
                     break;
                 default:
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/md5.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/md5.js";
             }
             head.appendChild(js);
             retrieveDatasetInfo();
