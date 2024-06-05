@@ -667,8 +667,20 @@ function queueFileForDirectUpload(file) {
     }
     var fUpload = new fileUpload(file);
     let send = true;
-    let path = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf('/') + 1);
+    let origPath = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf('/') + 1);
     console.log(path);
+    let path =origPath.substring(0, origPath.length - file.name.length);
+    let badPath = (path.match(/^[a-zA-Z0-9_\-.\\\/ ]*$/)===null);
+    if(badPath) {
+      if($('.warn').length==0) {
+        addMessage('warn', 'msgRequiredFileOrPathNameChange');
+      }
+      //Munge path according to rules
+      path = path.replace(/[^\w\d_\\.\\\/ ]+/g,'_');
+      //Munge filename if needed
+      path=path.concat(file.name.replace(/[\/:*?|;#]/g,'_'));
+    }
+    //Now check versus existing files
     if (path in existingFiles) {
         send = false;
     } else if (removeExtension(path) in convertedFileNameMap) {
@@ -697,7 +709,7 @@ function queueFileForDirectUpload(file) {
       }
     }
     row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send));
-    let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(path);
+    let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(origPath);
     if(badChars) {
       fnameElement.addClass('badchars');
     }
@@ -838,10 +850,13 @@ async function directUploadFinished() {
                     console.log(fup.file.webkitRelativePath + ' : ' + fup.storageId);
                     let entry = {};
                     entry.storageIdentifier = fup.storageId;
+                    //Remove bad file name chars
                     entry.fileName = fup.file.name.replace(/[\/:*?|;#]/g,'_');
                     let path = fup.file.webkitRelativePath;
                     console.log(path);
                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
+                    //Remove bad path chars
+                    path = path.replace(/[^\w\d_\\.\\\/ ]+/g,'_');
                     if (path.length !== 0) {
                         entry.directoryLabel = path;
                     }

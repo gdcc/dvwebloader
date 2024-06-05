@@ -15,7 +15,7 @@ const translations = {
         msgNoFile: "No files to upload. Check some files, or refresh to start over.",
         msgUploadCompleteRegistering: "Uploads to S3 complete. Now registering all files with the dataset. This may take some time for large numbers of files.",
         msgUploadComplete: "Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.",
-        msgRequiredFileNameChange: "The highlighted file(s) below contain one or more disallowed characters (/;:|?*#) in their filename. Disallowed characters will be replaced by an underscore (_) if the file(s) are uploaded.",
+        msgRequiredPatOrFileNameChange: "The highlighted path/file(s) below contain one or more disallowed characters (paths can only contain a-Z, 0-9, '_', '-', '.', '\', '/' and ' ', and filenames cannot contain any of /;:|?*#). Disallowed characters will be replaced by an underscore (_) if the file(s) are uploaded.",
     },
     fr: {
         title: "Envoi d'un dossier",
@@ -32,7 +32,7 @@ const translations = {
         msgNoFile: "Aucun fichier à envoyer. Cochez certains fichiers ou rafraîchissez la page pour recommencer.",
         msgUploadCompleteRegistering: "Envois vers S3 terminés. Enregistrement de tous les fichiers en cours dans le jeu de données. Cela peut prendre du temps pour un grand nombre de fichiers.",
         msgUploadComplete: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre et rafraîchissez la page de votre jeu de données pour voir les fichiers envoyés.",
-        msgRequiredFileNameChange: "Le ou les fichiers en surbrillance ci-dessous contiennent un ou plusieurs caractères non autorisés (/;:|?*#) dans leur nom de fichier. Les caractères non autorisés seront remplacés par un trait de soulignement (_) si le(s) fichier(s) sont téléchargés.",
+        msgRequiredFileNameChange: "Les chemins/noms de fichiers en surbrillance ci-dessous contiennent un ou plusieurs caractères non autorisés (les chemins ne peuvent contenir que a-Z, 0-9, '_', '-', '.', '\', '/' et ' ', et les noms de fichiers ne peuvent contenir aucun des éléments suivants : /;:|?*#). Les caractères non autorisés seront remplacés par un trait de soulignement (_) si le(s) fichier(s) sont téléchargés.",
     },
 };
 
