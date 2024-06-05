@@ -45,6 +45,10 @@ label {
     background-color: beige;
     padding: 10px;
 }
+.warn {
+   background-color: bisque;
+    padding: 10px;
+}
 .file-exists {
     background-color: lightblue;
 }
@@ -66,4 +70,8 @@ h1 {
     text-align: center;
     width: 58%;
     display:inline-block;
+}
+.badchars {
+   background-color: bisque;
+    padding: 10px;
 }
