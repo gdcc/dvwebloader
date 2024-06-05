@@ -685,7 +685,7 @@ function queueFileForDirectUpload(file) {
     } else if (removeExtension(path) in convertedFileNameMap) {
         send = false;
     }
-    rawFileMap[path] = file;
+    rawFileMap[origPath] = file;
     let i = rawFileMap.length;
     //startUploads();
     if (send) {
