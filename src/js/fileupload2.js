@@ -188,9 +188,6 @@ function initSpanTxt(htmlId, key) {
 function addMessage(type, key) {
     $('#messages').html('').append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
 }
-function appendMessage(type, text) {
-    $('#messages').append($('<div/>').addClass(type).text(text));
-}
 
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
@@ -674,7 +671,7 @@ function queueFileForDirectUpload(file) {
     let badPath = (path.match(/^[a-zA-Z0-9_\-.\\\/ ]*$/)===null);
     if(badPath) {
       if($('.warn').length==0) {
-        addMessage('warn', 'msgRequiredFileOrPathNameChange');
+        addMessage('warn', 'msgRequiredPathOrFileNameChange');
       }
       //Munge path according to rules
       path = path.replace(/[^\w\d_\\.\\\/ ]+/g,'_');
@@ -707,7 +704,7 @@ function queueFileForDirectUpload(file) {
     let badChars = !(fUpload.file.name.match(/[[\/:*?|;#]/)===null);
     if(badChars) {
       if($('.warn').length==0) {
-        appendMessage('warn','The highlighted file(s) below contain one or more disallowed characters (/;:|?*#) in their filename. Disallowed characters will be replaced by an underscore (_) if the file(s) are uploaded.');
+          addMessage('warn', 'msgRequiredPathOrFileNameChange');
       }
     }
     row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send));
