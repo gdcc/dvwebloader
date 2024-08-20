@@ -665,7 +665,7 @@ function queueFileForDirectUpload(file) {
     var fUpload = new fileUpload(file);
     let send = true;
     let origPath = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf('/') + 1);
-    console.log("Original Path: " + origPath);
+    
     //Remove filename part
     let path =origPath.substring(0, origPath.length - file.name.length);
     let badPath = (path.match(/^[\w\d_\-\.\\\/ ]*$/)===null);
@@ -678,7 +678,7 @@ function queueFileForDirectUpload(file) {
     }
     //Re-Add filename, munge filename if needed
     path=path.concat(file.name.replace(/[\/:*?|;#]/g,'_'));
-    console.log("Final Path: " + path);
+    
     //Now check versus existing files
     if (path in existingFiles) {
         send = false;
