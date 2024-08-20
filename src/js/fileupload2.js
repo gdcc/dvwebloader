@@ -82,26 +82,26 @@ $(document).ready(function() {
 
             switch (checksumAlgName) {
                 case 'MD5':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/md5.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/md5.js";
                     break;
                 case 'SHA-1':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/sha1.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/sha1.js";
                     break;
                 case 'SHA-256':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/sha256.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/sha256.js";
                     break;
                 case 'SHA-512':
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/x64-core.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/x64-core.js";
                     //Make async false to avoid sha512 loading before the x64-core which can cause an error
                     js.async = false;
                     head.appendChild(js);
                     js = document.createElement("script");
                     js.type = "text/javascript";
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/sha512.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/sha512.js";
                     js.async = false;
                     break;
                 default:
-                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/md5.js";
+                    js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/md5.js";
             }
             head.appendChild(js);
             retrieveDatasetInfo();
@@ -191,6 +191,7 @@ function initSpanTxt(htmlId, key) {
 function addMessage(type, key) {
     $('#messages').html('').append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
 }
+
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
     var title = "";
@@ -666,14 +667,28 @@ function queueFileForDirectUpload(file) {
     }
     var fUpload = new fileUpload(file);
     let send = true;
-    let path = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf('/') + 1);
-    console.log(path);
+    let origPath = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf('/') + 1);
+    
+    //Remove filename part
+    let path =origPath.substring(0, origPath.length - file.name.length);
+    let badPath = (path.match(/^[\w\d_\-\.\\\/ ]*$/)===null);
+    if(badPath) {
+      if($('.warn').length==0) {
+        addMessage('warn', 'msgRequiredPathOrFileNameChange');
+      }
+      //Munge path according to rules
+      path = path.replace(/[^\w\d_\\.\\\/ ]+/g,'_');
+    }
+    //Re-Add filename, munge filename if needed
+    path=path.concat(file.name.replace(/[\/:*?|;#]/g,'_'));
+    
+    //Now check versus existing files
     if (path in existingFiles) {
         send = false;
     } else if (removeExtension(path) in convertedFileNameMap) {
         send = false;
     }
-    rawFileMap[path] = file;
+    rawFileMap[origPath] = file;
     let i = rawFileMap.length;
     //startUploads();
     if (send) {
@@ -689,8 +704,18 @@ function queueFileForDirectUpload(file) {
     if (!send) {
         row.addClass('file-exists');
     }
-    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send))
-        .append($('<div/>').addClass('ui-fileupload-filename').text(path))
+    let badChars = !(fUpload.file.name.match(/[[\/:*?|;#]/)===null);
+    if(badChars) {
+      if($('.warn').length==0) {
+          addMessage('warn', 'msgRequiredPathOrFileNameChange');
+      }
+    }
+    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send));
+    let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(origPath);
+    if(badPath || badChars) {
+      fnameElement.addClass('badchars');
+    }
+    row.append(fnameElement)
         .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui - fileupload - progress'))
         .append($('<div/>').addClass('ui - fileupload - cancel'));
     console.log('adding click handler for file_' + fileBlock.children().length);
@@ -827,10 +852,13 @@ async function directUploadFinished() {
                     console.log(fup.file.webkitRelativePath + ' : ' + fup.storageId);
                     let entry = {};
                     entry.storageIdentifier = fup.storageId;
-                    entry.fileName = fup.file.name;
+                    //Remove bad file name chars
+                    entry.fileName = fup.file.name.replace(/[\/:*?|;#]/g,'_');
                     let path = fup.file.webkitRelativePath;
                     console.log(path);
                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
+                    //Remove bad path chars
+                    path = path.replace(/[^\w\d_\\.\\\/ ]+/g,'_');
                     if (path.length !== 0) {
                         entry.directoryLabel = path;
                     }
