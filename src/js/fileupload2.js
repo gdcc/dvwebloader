@@ -92,10 +92,13 @@ $(document).ready(function() {
                     break;
                 case 'SHA-512':
                     js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/x64-core.js";
+                    //Make async false to avoid sha512 loading before the x64-core which can cause an error
+                    js.async = false;
                     head.appendChild(js);
                     js = document.createElement("script");
                     js.type = "text/javascript";
                     js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/sha512.js";
+                    js.async = false;
                     break;
                 default:
                     js.src = "https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/md5.js";
