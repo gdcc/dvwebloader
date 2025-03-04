@@ -1,5 +1,6 @@
 import getLocalizedString from './lang.js';
 
+let startUploadsHasBeenCalled = false;
 var fileList = [];
 var rawFileMap = {};
 var toRegisterFileList = [];
@@ -48,6 +49,7 @@ var queryParams;
 var dvLocale;
 
 $(document).ready(function() {
+    startUploadsHasBeenCalled  = false;
     queryParams = new URLSearchParams(window.location.search.substring(1));
     siteUrl = queryParams.get("siteUrl");
     console.log(siteUrl);
@@ -728,7 +730,7 @@ function toggleUpload() {
     console.log($('.ui-fileupload-row').children('input:checked').length);
     if ($('.ui-fileupload-row').children('input:checked').length !== 0) {
         console.log('yes');
-        if ($('#upload').length === 0) {
+        if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
             $('<button/>').prop('id', 'upload').text(getLocalizedString(dvLocale, 'startUpload')).addClass('button').click(startUploads).insertBefore($('#messages'));
             addMessage('info', 'msgStartUpload');
         }
@@ -739,6 +741,7 @@ function toggleUpload() {
 }
 
 function startUploads() {
+    startUploadsHasBeenCalled = true;
     $('#top button').remove();
     let checked = $('#filelist>.ui-fileupload-files input:checked');
     checked.each(function() {
