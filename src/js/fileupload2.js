@@ -671,16 +671,16 @@ function queueFileForDirectUpload(file) {
     
     //Remove filename part
     let path =origPath.substring(0, origPath.length - file.name.length);
-    let badPath = (path.match(/^[\w\d_\-\.\\\/ ]*$/)===null);
+    let badPath = (path.match(/^[\w\-\.\\\/ ]*$/)===null);
     if(badPath) {
       if($('.warn').length==0) {
         addMessage('warn', 'msgRequiredPathOrFileNameChange');
       }
       //Munge path according to rules
-      path = path.replace(/[^\w\d_\\.\\\/ ]+/g,'_');
+      path = path.replace(/[^\w\-\.\\\/ ]+/g,'_');
     }
     //Re-Add filename, munge filename if needed
-    path=path.concat(file.name.replace(/[\/:*?|;#]/g,'_'));
+    path=path.concat(file.name.replace(/[:<>;#/"*|?\\]/g,'_'));
     
     //Now check versus existing files
     if (path in existingFiles) {
@@ -704,7 +704,7 @@ function queueFileForDirectUpload(file) {
     if (!send) {
         row.addClass('file-exists');
     }
-    let badChars = !(fUpload.file.name.match(/[[\/:*?|;#]/)===null);
+    let badChars = !(fUpload.file.name.match(/[:<>;#\/"*|?\\]/)===null);
     if(badChars) {
       if($('.warn').length==0) {
           addMessage('warn', 'msgRequiredPathOrFileNameChange');
@@ -853,12 +853,12 @@ async function directUploadFinished() {
                     let entry = {};
                     entry.storageIdentifier = fup.storageId;
                     //Remove bad file name chars
-                    entry.fileName = fup.file.name.replace(/[\/:*?|;#]/g,'_');
+                    entry.fileName = fup.file.name.replace(/[:<>;#/"*|?\\]/g,'_');
                     let path = fup.file.webkitRelativePath;
                     console.log(path);
                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
                     //Remove bad path chars
-                    path = path.replace(/[^\w\d_\\.\\\/ ]+/g,'_');
+                    path = path.replace(/[^\w\-\.\\\/ ]+/g,'_');
                     if (path.length !== 0) {
                         entry.directoryLabel = path;
                     }
