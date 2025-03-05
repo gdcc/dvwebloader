@@ -7,6 +7,7 @@ var toRegisterFileList = [];
 var observer2 = null;
 var numDone = 0;
 var delay = 100; //milliseconds
+var draftExists = false;
 var UploadState = {
     QUEUED: 'queued',
     REQUESTING: 'requesting',
@@ -199,10 +200,7 @@ async function populatePageMetadata(data) {
     var title = "";
     var authors = "";
     var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid;
-    var version = queryParams.get("datasetversion");
-    if (version === ":draft") {
-        version = "DRAFT";
-    }
+    draftExists = data.latestVersionPublishingState && data.latestVersionPublishingState === "DRAFT";
 
     for (var field in mdFields) {
         if (mdFields[field].typeName === "title") {
@@ -889,7 +887,11 @@ async function directUploadFinished() {
                     processData: false,
                     success: function(body, statusText, jqXHR) {
                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
+                        if(draftExists) {
                         addMessage('success', 'msgUploadComplete');
+                        } else {
+                          addMessage('success', 'msgUploadCompleteNewDraft');
+                        }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
