@@ -33,7 +33,7 @@ const translations = {
         msgNoFile: "Aucun fichier à envoyer. Cochez certains fichiers ou rafraîchissez la page pour recommencer.",
         msgUploadCompleteRegistering: "Envois vers S3 terminés. Enregistrement de tous les fichiers en cours dans le jeu de données. Cela peut prendre du temps pour un grand nombre de fichiers.",
         msgUploadComplete: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre et rafraîchissez la page de votre jeu de données pour voir les fichiers envoyés.",
-        msgUploadComplete: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre, rafraîchissez la page de votre jeu de données, et accédez à la nouvelle version DRAFT pour voir les fichiers envoyés.",
+        msgUploadCompleteNewDraft: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre, rafraîchissez la page de votre jeu de données, et accédez à la nouvelle version DRAFT pour voir les fichiers envoyés.",
         msgRequiredPathOrFileNameChange: "Le(s) chemin(s) en surbrillance ci-dessous contiennent un ou plusieurs caractères non autorisés (les chemins ne peuvent contenir que a-Z, 0-9, '_', '-', '.', '\', '/' et ' ', et les noms de fichiers ne peuvent contenir aucun des éléments '/;:|?*#' ). Les caractères non autorisés seront remplacés par un trait de soulignement (« _ ») si le(s) fichier(s) sont téléchargés.",
     },
 };
