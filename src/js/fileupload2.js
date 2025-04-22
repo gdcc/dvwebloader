@@ -783,7 +783,6 @@ function deselectAllFiles() {
 }
 
 function toggleUpload() {
-
     let maxFiles = parseInt($('#maxFilesInput').val());
     let checkedFiles = $('.ui-fileupload-row').children('input:checked').length;
 
@@ -797,17 +796,23 @@ function toggleUpload() {
     console.log('Checked files: ' + checkedFiles);
 
     if (checkedFiles !== 0) {
-      if(checkedFiles > maxFiles) {
-        addMessage('warn', 'msgMaxFilesExceded');
-        $('#upload').remove();
-      } else {
-        if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
-            $('<button/>').prop('id', 'upload').text(getLocalizedString(dvLocale, 'startUpload')).addClass('button').click(startUploads).insertBefore($('#messages'));
+        if (checkedFiles > maxFiles) {
+            addMessage('warn', 'msgMaxFilesExceeded');
+            $('#upload').addClass('disabled').prop('disabled', true);
+        } else {
+            if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
+                $('<button/>').prop('id', 'upload')
+                    .text(getLocalizedString(dvLocale, 'startUpload'))
+                    .addClass('button')
+                    .click(startUploads)
+                    .insertBefore($('#messages'));
+            } else {
+                $('#upload').removeClass('disabled').prop('disabled', false);
+            }
+            addMessage('info', 'msgStartUpload');
         }
-        addMessage('info', 'msgStartUpload');
-      }
     } else {
-        $('#upload').remove();
+        $('#upload').addClass('disabled').prop('disabled', true);
         addMessage('info', 'msgNoFile');
     }
 }
