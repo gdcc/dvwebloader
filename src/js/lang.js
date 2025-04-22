@@ -18,8 +18,10 @@ const translations = {
         msgUploadCompleteNewDraft: "Upload complete, all files in dataset. Close this window, refresh your dataset page, and navigate to the new DRAFT version to see the uploaded files.",
         msgRequiredPathOrFileNameChange: "The highlighted path/file(s) below contain one or more disallowed characters (paths can only contain a-Z, 0-9, '_', '-', '.', '\', '/' and ' ', and filenames cannot contain any of '/;:|?*#' ). Disallowed characters will be replaced by an underscore ('_') if the file(s) are uploaded.",
         msgUploadToDataverseFailed: "Final submission of file metadata failed, files will not be added to the dataset. Please contact the repository for help and include the error information below.",
-        msgSelectAllNew: "Select all files not in dataset",
+        msgMaxFiles: "Max files to upload",
+        msgSelectAllNew: "Select up to max files not in dataset",
         msgDeselectAll: "Deselect all",
+        msgMaxFilesReached: "Maximum number of files reached. Uncheck some files before selecting more.",
     },
     fr: {
         title: "Envoi d'un dossier",
@@ -39,9 +41,10 @@ const translations = {
         msgUploadCompleteNewDraft: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre, rafraîchissez la page de votre jeu de données, et accédez à la nouvelle version DRAFT pour voir les fichiers envoyés.",
         msgRequiredPathOrFileNameChange: "Le(s) chemin(s) en surbrillance ci-dessous contiennent un ou plusieurs caractères non autorisés (les chemins ne peuvent contenir que a-Z, 0-9, '_', '-', '.', '\', '/' et ' ', et les noms de fichiers ne peuvent contenir aucun des éléments '/;:|?*#' ). Les caractères non autorisés seront remplacés par un trait de soulignement (« _ ») si le(s) fichier(s) sont téléchargés.",
         msgUploadToDataverseFailed: "La soumission finale des métadonnées du fichier a échoué ; les fichiers ne seront pas ajoutés au jeu de données. Veuillez contacter le dépôt pour obtenir de l'aide et inclure les informations d'erreur ci-dessous.",
-        msgSelectAllNew: "Sélectionner tous les fichiers qui ne sont pas dans l'ensemble de données",
+        msgMaxFiles: "Nombre maximum de fichiers à télécharger",
+        msgSelectAllNew: "Sélectionner jusqu'au maximum de fichiers non présents dans l'ensemble de données",
         msgDeselectAll: "Tout désélectionner",
-        
+        msgMaxFilesReached: "Nombre maximal de fichiers atteint. Décochez certains fichiers avant d'en sélectionner d'autres.",
     },
 };
 

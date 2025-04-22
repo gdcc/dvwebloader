@@ -129,19 +129,62 @@ $(document).ready(function() {
         }
         $('label.button').hide();
         // Add buttons for selecting/deselecting files
-        $('<div/>')
-            .addClass('file-selection-buttons')
-            .append($('<button/>')
-                .addClass('btn btn-default btn-sm')
-                .text(getLocalizedString(dvLocale, 'msgSelectAllNew'))
-                .click(selectAllNewFiles))
-            .append($('<button/>')
-                .addClass('btn btn-default btn-sm')
-                .text(getLocalizedString(dvLocale, 'msgDeselectAll'))
-                .click(deselectAllFiles))
-            .insertBefore($('#filelist'));
+                $('<div/>')
+                            .addClass('file-selection-buttons')
+                            .append($('<input/>')
+                                .attr('type', 'number')
+                                .attr('id', 'maxFilesInput')
+                                .attr('min', '1')
+                                .attr('max', totalFiles)
+                                .attr('value', totalFiles)
+                                .addClass('input-sm')
+                                .css('width', '80px')
+                                .css('display', 'inline-block')
+                                .on('change', updateFileSelection))
+                            .append($('<label/>')
+                                .attr('for', 'maxFilesInput')
+                                .text(' ' + getLocalizedString(dvLocale, 'msgMaxFiles')))
+                            .append($('<button/>')
+                                .addClass('button-sm')
+                                .text(getLocalizedString(dvLocale, 'msgSelectAllNew'))
+                                .click(selectMaxNewFiles))
+                            .append($('<button/>')
+                                .addClass('button-sm')
+                                .text(getLocalizedString(dvLocale, 'msgDeselectAll'))
+                                .click(deselectAllFiles))
+                            .insertBefore($('#filelist'));
+
     };
 });
+
+function updateFileSelection() {
+    let maxFiles = parseInt($('#maxFilesInput').val());
+    let checkedFiles = 0;
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function(index) {
+        let checkbox = $(this).find('input[type="checkbox"]');
+        if (index < maxFiles && !$(this).hasClass('file-exists')) {
+            checkbox.prop('checked', true);
+            checkedFiles++;
+        } else {
+            checkbox.prop('checked', false);
+        }
+    });
+    updateCheckboxes(maxFiles);
+    toggleUpload();
+}
+
+function updateCheckboxes(maxFiles) {
+    let checkedFiles = 0;
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
+        let checkbox = $(this).find('input[type="checkbox"]');
+        if (checkedFiles < maxFiles && checkbox.prop('checked')) {
+            checkedFiles++;
+        } else if (checkedFiles >= maxFiles) {
+            checkbox.prop('checked', false);
+        }
+    });
+}
+
 function addIconAndLogo(siteUrl) {
     // Add favicon from source Dataverse
     $('head')
@@ -738,10 +781,13 @@ function queueFileForDirectUpload(file) {
 }
 
 // Function to select all files not in dataset
-function selectAllNewFiles() {
+function selectMaxNewFiles() {
+    let maxFiles = parseInt($('#maxFilesInput').val());
+    let checkedFiles = 0;
     $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
-        if (!$(this).hasClass('file-exists')) {
+        if (checkedFiles < maxFiles && !$(this).hasClass('file-exists')) {
             $(this).find('input[type="checkbox"]').prop('checked', true);
+            checkedFiles++;
         } else {
             $(this).find('input[type="checkbox"]').prop('checked', false);
         }
@@ -758,8 +804,25 @@ function deselectAllFiles() {
 function toggleUpload() {
     console.log("Toggle " + this.id);
     console.log('isChecked ' + this.checked);
-    console.log($('.ui-fileupload-row').children('input:checked').length);
-    if ($('.ui-fileupload-row').children('input:checked').length !== 0) {
+
+    let maxFiles = parseInt($('#maxFilesInput').val());
+    let checkedFiles = $('.ui-fileupload-row').children('input:checked').length;
+
+    // If the checkbox is being checked and we're already at the max, prevent it
+    if (this.checked && checkedFiles > maxFiles) {
+        this.checked = false;
+        addMessage('warn', 'msgMaxFilesReached');
+        return;
+    }
+
+    // If we're unchecking a box, we don't need to do anything special
+    if (!this.checked) {
+        checkedFiles--;
+    }
+
+    console.log('Checked files: ' + checkedFiles);
+
+    if (checkedFiles !== 0) {
         console.log('yes');
         if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
             $('<button/>').prop('id', 'upload').text(getLocalizedString(dvLocale, 'startUpload')).addClass('button').click(startUploads).insertBefore($('#messages'));
@@ -769,6 +832,9 @@ function toggleUpload() {
         $('#upload').remove();
         addMessage('info', 'msgNoFile');
     }
+
+    // Update all checkboxes based on the new state
+    updateCheckboxes(maxFiles);
 }
 
 function startUploads() {
