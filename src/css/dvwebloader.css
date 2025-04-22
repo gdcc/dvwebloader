@@ -89,7 +89,7 @@ h1 {
 }
 .button:disabled {
     background: gray;
-    border-color: gray;
+    border-color: gray!important;
 }
 .button:hover {
 	border-color: lightblue;
