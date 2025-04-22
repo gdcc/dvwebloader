@@ -783,20 +783,18 @@ function deselectAllFiles() {
 }
 
 function toggleUpload() {
-    console.log("Toggle " + this.id);
-    console.log('isChecked ' + this.checked);
 
     let maxFiles = parseInt($('#maxFilesInput').val());
     let checkedFiles = $('.ui-fileupload-row').children('input:checked').length;
 
     // If the checkbox is being checked and we're already at the max, prevent it
-    if (this.checked && checkedFiles > maxFiles) {
+    if (this && this.checked && checkedFiles > maxFiles) {
         this.checked = false;
         addMessage('warn', 'msgMaxFilesReached');
     }
 
     // If we're unchecking a box, we don't need to do anything special
-    if (!this.checked) {
+    if (this && !this.checked) {
         checkedFiles--;
     }
 
