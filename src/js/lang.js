@@ -17,6 +17,7 @@ const translations = {
         msgUploadComplete: "Upload complete, all files in dataset. Close this window and refresh your dataset page to see the uploaded files.",
         msgUploadCompleteNewDraft: "Upload complete, all files in dataset. Close this window, refresh your dataset page, and navigate to the new DRAFT version to see the uploaded files.",
         msgRequiredPathOrFileNameChange: "The highlighted path/file(s) below contain one or more disallowed characters (paths can only contain a-Z, 0-9, '_', '-', '.', '\', '/' and ' ', and filenames cannot contain any of '/;:|?*#' ). Disallowed characters will be replaced by an underscore ('_') if the file(s) are uploaded.",
+        msgUploadToDataverseFailed: "Final submission of file metadata failed, files will not be added to the dataset. Please contact the repository for help and include the error information below.",
     },
     fr: {
         title: "Envoi d'un dossier",
@@ -35,6 +36,7 @@ const translations = {
         msgUploadComplete: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre et rafraîchissez la page de votre jeu de données pour voir les fichiers envoyés.",
         msgUploadCompleteNewDraft: "Envoi terminé, tous les fichiers sont dans le jeu de données. Fermez cette fenêtre, rafraîchissez la page de votre jeu de données, et accédez à la nouvelle version DRAFT pour voir les fichiers envoyés.",
         msgRequiredPathOrFileNameChange: "Le(s) chemin(s) en surbrillance ci-dessous contiennent un ou plusieurs caractères non autorisés (les chemins ne peuvent contenir que a-Z, 0-9, '_', '-', '.', '\', '/' et ' ', et les noms de fichiers ne peuvent contenir aucun des éléments '/;:|?*#' ). Les caractères non autorisés seront remplacés par un trait de soulignement (« _ ») si le(s) fichier(s) sont téléchargés.",
+        msgUploadToDataverseFailed: "La soumission finale des métadonnées du fichier a échoué ; les fichiers ne seront pas ajoutés au jeu de données. Veuillez contacter le dépôt pour obtenir de l'aide et inclure les informations d'erreur ci-dessous.",
     },
 };
 
@@ -46,6 +48,6 @@ export default function getLocalizedString(locale, key) {
     if (translations[locale] && translations[locale][key]) {
         return translations[locale][key];
     }
-    console.log('getLocalizedString - transalation not found with locale: '+locale+' and key:'+key);
+    console.log('getLocalizedString - translation not found with locale: '+locale+' and key:'+key);
     return key;
 }

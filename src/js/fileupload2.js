@@ -58,7 +58,6 @@ $(document).ready(function() {
     datasetPid = queryParams.get("datasetPid");
     console.log('PID: ' + datasetPid);
     apiKey = queryParams.get("key");
-    console.log(apiKey);
     dvLocale = queryParams.get("dvLocale");
     console.log('locale: ' + dvLocale);
     directUploadEnabled = true;
@@ -125,8 +124,7 @@ $(document).ready(function() {
         console.log('rawFileMap len: ' + totalFiles);
         if (totalFiles === numExists) {
             addMessage('info', 'msgFilesAlreadyExist');
-        } else
-        if (numExists !== 0 && totalFiles > numExists) {
+        } else if (numExists !== 0 && totalFiles > numExists) {
             addMessage('info', 'msgUploadOnlyCheckedFiles');
         }
         $('label.button').hide();
@@ -191,8 +189,13 @@ function initTranslation() {
 function initSpanTxt(htmlId, key) {
     $('#'+htmlId).text(getLocalizedString(dvLocale, key));
 }
-function addMessage(type, key) {
-    $('#messages').html('').append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
+function addMessage(type, key, details) {
+    $('#messages').html('')
+        .append($('<div/>').addClass(type).text(getLocalizedString(dvLocale, key)));
+    
+    if (details) {
+        $('#messages').append($('<div/>').addClass(type).addClass(type + '-details').text(details));
+    }
 }
 
 async function populatePageMetadata(data) {
@@ -415,13 +418,13 @@ var fileUpload = class fileUploadClass {
             var upid = filerows[i].getAttribute('upid');
             if (typeof upid === "undefined" || upid === null || upid === '') {
                 var newUpId = getUpId();
-                filerows[i].setAttribute('upid', newUpId);
+                filerows[i].setAttribute('upid', 'file_' + newUpId);
             }
         }
         //Get the list of files to upload
         var files = $('.ui-fileupload-files');
         //Find the corresponding row (assumes that the file order and the order of rows is the same)
-        var fileNode = files.find("[upid='" + thisFile + "']");
+        var fileNode = files.find("[upid='file_" + thisFile + "']");
         //Decrement number queued for processing
         console.log('Decrementing fip from :' + filesInProgress);
         filesInProgress = filesInProgress - 1;
@@ -587,7 +590,7 @@ var fileUpload = class fileUploadClass {
         if (directUploadReport) {
             getChecksum(this.file, prog => {
                 var current = 1 + prog;
-                $('[upid="' + this.id + '"] progress').attr({
+                $('[upid="file_' + this.id + '"] progress').attr({
                     value: current,
                     max: 2
                 });
@@ -716,8 +719,8 @@ function queueFileForDirectUpload(file) {
       fnameElement.addClass('badchars');
     }
     row.append(fnameElement)
-        .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui - fileupload - progress'))
-        .append($('<div/>').addClass('ui - fileupload - cancel'));
+        .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui-fileupload-progress'))
+        .append($('<div/>').addClass('ui-fileupload-cancel'));
     console.log('adding click handler for file_' + fileBlock.children().length);
     $('#file_' + fileBlock.children().length).click(toggleUpload);
 }
@@ -888,7 +891,7 @@ async function directUploadFinished() {
                     success: function(body, statusText, jqXHR) {
                         console.log("All files sent to " + siteUrl + '/dataset.xhtml?persistentId=doi:' + datasetPid + '&version=DRAFT');
                         if(draftExists) {
-                        addMessage('success', 'msgUploadComplete');
+                          addMessage('success', 'msgUploadComplete');
                         } else {
                           addMessage('success', 'msgUploadCompleteNewDraft');
                         }
@@ -896,6 +899,7 @@ async function directUploadFinished() {
                     error: function(jqXHR, textStatus, errorThrown) {
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
+                        addMessage("failure", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
                         //uploadFailure(jqXHR, thisFile);
                     }
                 });
