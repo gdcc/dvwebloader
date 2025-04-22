@@ -814,9 +814,6 @@ function toggleUpload() {
         $('#upload').remove();
         addMessage('info', 'msgNoFile');
     }
-
-    // Update all checkboxes based on the new state
-    updateCheckboxes(maxFiles);
 }
 
 function startUploads() {
