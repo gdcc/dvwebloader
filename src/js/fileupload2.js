@@ -803,8 +803,8 @@ function toggleUpload() {
       } else {
         if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
             $('<button/>').prop('id', 'upload').text(getLocalizedString(dvLocale, 'startUpload')).addClass('button').click(startUploads).insertBefore($('#messages'));
-            addMessage('info', 'msgStartUpload');
         }
+        addMessage('info', 'msgStartUpload');
       }
     } else {
         $('#upload').remove();
