@@ -793,11 +793,6 @@ function toggleUpload() {
         addMessage('warn', 'msgMaxFilesReached');
     }
 
-    // If we're unchecking a box, we don't need to do anything special
-    if (this && !this.checked) {
-        checkedFiles--;
-    }
-
     console.log('Checked files: ' + checkedFiles);
 
     if (checkedFiles !== 0) {
