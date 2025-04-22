@@ -790,6 +790,7 @@ function toggleUpload() {
     // If the checkbox is being checked and we're already at the max, prevent it
     if (this && this.checked && checkedFiles > maxFiles) {
         this.checked = false;
+        checkedFiles--;
         addMessage('warn', 'msgMaxFilesReached');
     }
 
