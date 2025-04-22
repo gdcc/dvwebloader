@@ -128,6 +128,18 @@ $(document).ready(function() {
             addMessage('info', 'msgUploadOnlyCheckedFiles');
         }
         $('label.button').hide();
+        // Add buttons for selecting/deselecting files
+        $('<div/>')
+            .addClass('file-selection-buttons')
+            .append($('<button/>')
+                .addClass('btn btn-default btn-sm')
+                .text(getLocalizedString(dvLocale, 'msgSelectAllNew'))
+                .click(selectAllNewFiles))
+            .append($('<button/>')
+                .addClass('btn btn-default btn-sm')
+                .text(getLocalizedString(dvLocale, 'msgDeselectAll'))
+                .click(deselectAllFiles))
+            .insertBefore($('#filelist'));
     };
 });
 function addIconAndLogo(siteUrl) {
@@ -723,6 +735,24 @@ function queueFileForDirectUpload(file) {
         .append($('<div/>').addClass('ui-fileupload-cancel'));
     console.log('adding click handler for file_' + fileBlock.children().length);
     $('#file_' + fileBlock.children().length).click(toggleUpload);
+}
+
+// Function to select all files not in dataset
+function selectAllNewFiles() {
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
+        if (!$(this).hasClass('file-exists')) {
+            $(this).find('input[type="checkbox"]').prop('checked', true);
+        } else {
+            $(this).find('input[type="checkbox"]').prop('checked', false);
+        }
+    });
+    toggleUpload();
+}
+
+// Function to deselect all files
+function deselectAllFiles() {
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row input[type="checkbox"]').prop('checked', false);
+    toggleUpload();
 }
 
 function toggleUpload() {
