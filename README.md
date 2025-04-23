@@ -1,7 +1,8 @@
 # dvwebloader
 A web tool for uploading folders of files to a Dataverse dataset. See [the wiki](https://github.com/gdcc/dvwebloader/wiki) for further details.
 
-Hosted at https://gdcc.github.io/dvwebloader
+The Hosted version at https://gdcc.github.io/dvwebloader can be used for testing. You should fork or install a local copy for production use (to avoid changes made in this repository immediately being available from your Dataverse installation.)
+You may also want to run the localinstall.sh script in the directory you download to to make and local copies of the libraries used.
 
 ### Current integration mechanism (v5.13+):
 
