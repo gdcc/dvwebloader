@@ -21,7 +21,7 @@ const translations = {
         msgMaxFiles: "Max files to upload",
         msgSelectAllNew: "Select up to max files not in dataset",
         msgDeselectAll: "Deselect all",
-        msgMaxFilesExceeded: "Maximum number of files exceded. Uncheck some files to enable upload.",
+        msgMaxFilesExceeded: "Maximum number of files exceeded. Uncheck some files to enable upload.",
         msgMaxFilesReached: "Maximum number of files reached. Uncheck some files before selecting more.",
     },
     fr: {
