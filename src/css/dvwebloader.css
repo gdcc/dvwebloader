@@ -92,7 +92,10 @@ h1 {
     border-color: gray!important;
 }
 .button:hover {
-	border-color: lightblue;
+  border-color: lightblue;
+}
+.button-sm:hover {
+  border-color: lightblue;
 }
 .badchars {
    background-color: bisque;
