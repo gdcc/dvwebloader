@@ -3,13 +3,10 @@
 }
 .ui-fileupload-row  {
     display: inline-flex;
-    width: 90%;
+    width: 100%;
 }
 .ui-fileupload-row > div {
     padding: 5px;
-}
-.ui-fileupload-row{
-    display:table-row;
 }
 .ui-fileupload-row>div{
     display:table-cell;
