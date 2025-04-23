@@ -227,12 +227,12 @@ function initSpanTxt(htmlId, key) {
 }
 function addMessage(type, key, ...keyArgs) {
     let msg = getLocalizedString(dvLocale, key);
-		
-		if(keyArgs && Array.isArray(keyArgs)) {
-		    for (var i = 0; i < keyArgs.length; i++) {
-		        msg = msg.replaceAll('{'+i+'}',keyArgs[i]);
-		    }
-		}
+    
+    if(keyArgs && Array.isArray(keyArgs)) {
+        for (var i = 0; i < keyArgs.length; i++) {
+            msg = msg.replaceAll('{'+i+'}',keyArgs[i]);
+        }
+    }
     $('#messages').html('')
         .append($('<div/>').addClass(type).html(msg));
 }
@@ -405,6 +405,7 @@ var fileUpload = class fileUploadClass {
         this.file = file;
         this.state = UploadState.QUEUED;
         this.send = true;
+        this.id = null;
     }
     async startRequestForDirectUploadUrl() {
         this.state = UploadState.REQUESTING;
@@ -449,7 +450,7 @@ var fileUpload = class fileUploadClass {
     async doUpload() {
         this.state = UploadState.UPLOADING;
         var thisFile = curFile;
-        this.id = thisFile;
+        
         //This appears to be the earliest point when the file table has been populated, and, since we don't know how many table entries have had ids added already, we check
         var filerows = $('.ui-fileupload-files .ui-fileupload-row');
         //Add an id attribute to each entry so we can later match progress and errors with the right entry
@@ -458,12 +459,14 @@ var fileUpload = class fileUploadClass {
             if (typeof upid === "undefined" || upid === null || upid === '') {
                 var newUpId = getUpId();
                 filerows[i].setAttribute('upid', 'file_' + newUpId);
+								console.log("Warning - just added upid: " + newUpId);
             }
         }
         //Get the list of files to upload
         var files = $('.ui-fileupload-files');
         //Find the corresponding row (assumes that the file order and the order of rows is the same)
-        var fileNode = files.find("[upid='file_" + thisFile + "']");
+				console.log("Looking for upid: " + this.id);
+        var fileNode = files.find("[upid='file_" + this.id + "']");
         //Decrement number queued for processing
         console.log('Decrementing fip from :' + filesInProgress);
         filesInProgress = filesInProgress - 1;
@@ -495,7 +498,7 @@ var fileUpload = class fileUploadClass {
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.log('Failure: ' + jqXHR.status);
                     console.log('Failure: ' + errorThrown);
-                    uploadFailure(jqXHR, thisFile);
+                    uploadFailure(jqXHR, this.id);
                 },
                 xhr: function() {
                     var myXhr = $.ajaxSettings.xhr();
@@ -742,7 +745,8 @@ function queueFileForDirectUpload(file) {
     if (fileBlock.length === 0) {
         fileBlock = ($('<div/>').addClass('ui-fileupload-files')).appendTo($('#filelist'));
     }
-    let row = ($('<div/>').addClass('ui-fileupload-row').attr('upid', 'file_' + fileBlock.children().length)).appendTo(fileBlock);
+    fUpload.id = fileBlock.children().length;
+    let row = ($('<div/>').addClass('ui-fileupload-row').attr('upid', 'file_' + fUpload.id)).appendTo(fileBlock);
     if (!send) {
         row.addClass('file-exists');
     }
