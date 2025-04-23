@@ -3,13 +3,10 @@
 }
 .ui-fileupload-row  {
     display: inline-flex;
-    width: 90%;
+    width: 100%;
 }
 .ui-fileupload-row > div {
     padding: 5px;
-}
-.ui-fileupload-row{
-    display:table-row;
 }
 .ui-fileupload-row>div{
     display:table-cell;
@@ -26,7 +23,7 @@ label {
     -webkit-border-radius: 4px;
     -moz-border-radius: 4px;
     border-radius: 4px;
-    border: solid 1px #20538D;
+    border: solid 2px #20538D;
     text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
     -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);
     -moz-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);
@@ -37,12 +34,32 @@ label {
     text-decoration: none;
     margin: 20px;
 }
+.button-sm {
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    border: solid 2px #20538D;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
+    -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);
+    -moz-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.2);
+    margin: 5px;
+}
+.input-sm {
+    margin-left:10px;
+    width: 80px;
+    display:inline-block;
+}
 .success {
     background-color: lightgreen;
     padding: 10px;
 }
 .info {
     background-color: beige;
+    padding: 10px;
+}
+.warn {
+   background-color: bisque;
     padding: 10px;
 }
 .file-exists {
@@ -66,4 +83,18 @@ h1 {
     text-align: center;
     width: 58%;
     display:inline-block;
+}
+.button:disabled {
+    background: gray;
+    border-color: gray!important;
+}
+.button:hover {
+  border-color: lightblue;
+}
+.button-sm:hover {
+  border-color: lightblue;
+}
+.badchars {
+   background-color: bisque;
+    padding: 10px;
 }
