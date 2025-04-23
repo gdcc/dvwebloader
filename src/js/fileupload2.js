@@ -234,7 +234,7 @@ function addMessage(type, key, ...keyArgs) {
 		    }
 		}
     $('#messages').html('')
-        .append($('<div/>').addClass(type).text(msg));
+        .append($('<div/>').addClass(type).html(msg));
 }
 
 async function populatePageMetadata(data) {
