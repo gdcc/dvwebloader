@@ -126,7 +126,9 @@ $(document).ready(function() {
             addMessage('info', 'msgFilesAlreadyExist');
         } else if (numExists !== 0 && totalFiles > numExists) {
             addMessage('info', 'msgUploadOnlyCheckedFiles');
-        }
+        } else (
+          addMessage('info', 'msgStartUpload')
+        )
         $('label.button').hide();
         // Add buttons for selecting/deselecting files
                 $('<div/>')
@@ -459,13 +461,12 @@ var fileUpload = class fileUploadClass {
             if (typeof upid === "undefined" || upid === null || upid === '') {
                 var newUpId = getUpId();
                 filerows[i].setAttribute('upid', 'file_' + newUpId);
-								console.log("Warning - just added upid: " + newUpId);
+                console.log("Deprecated - should not be called - just added upid: " + newUpId);
             }
         }
         //Get the list of files to upload
         var files = $('.ui-fileupload-files');
         //Find the corresponding row (assumes that the file order and the order of rows is the same)
-				console.log("Looking for upid: " + this.id);
         var fileNode = files.find("[upid='file_" + this.id + "']");
         //Decrement number queued for processing
         console.log('Decrementing fip from :' + filesInProgress);
