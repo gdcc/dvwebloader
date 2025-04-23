@@ -756,7 +756,7 @@ function queueFileForDirectUpload(file) {
           addMessage('warn', 'msgRequiredPathOrFileNameChange');
       }
     }
-    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fileBlock.children().length).prop('checked', send));
+    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fUpload.id).prop('checked', send));
     let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(origPath);
     if(badPath || badChars) {
       fnameElement.addClass('badchars');
@@ -764,8 +764,8 @@ function queueFileForDirectUpload(file) {
     row.append(fnameElement)
         .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui-fileupload-progress'))
         .append($('<div/>').addClass('ui-fileupload-cancel'));
-    console.log('adding click handler for file_' + fileBlock.children().length);
-    $('#file_' + fileBlock.children().length).click(toggleUpload);
+    console.log('adding click handler for file_' + fUpload.id);
+    $('#file_' + fUpload.id).click(toggleUpload);
 }
 
 // Function to select all files not in dataset
@@ -832,6 +832,7 @@ function startUploads() {
         console.log('Name ' + $(this).siblings('.ui-fileupload-filename').text());
         let file = rawFileMap[$(this).siblings('.ui-fileupload-filename').text()];
         let fUpload = new fileUpload(file);
+        fUpload.id=$(this).parent().attr("upid").replace('file_', '');
         fileList.push(fUpload);
     });
     if (filesInProgress < 4 && fileList.length !== 0) {
