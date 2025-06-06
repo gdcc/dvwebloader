@@ -1020,6 +1020,10 @@ async function directUploadFinished() {
                 console.log(JSON.stringify(body));
                 let fd = new FormData();
                 fd.append('jsonData', JSON.stringify(body));
+                
+                // Add a loading indicator before making the AJAX call
+                $('#messages').append($('<div/>').attr('id', 'loading-indicator').addClass('pending')
+                    .html('<div class="spinner"></div>' + formatMessage('msgRegisteringFiles')));
                 $.ajax({
                     url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
                     headers: { "X-Dataverse-key": apiKey },
@@ -1031,6 +1035,9 @@ async function directUploadFinished() {
                     data: fd,
                     processData: false,
                     success: function(body, statusText, jqXHR) {
+                        // Remove the loading indicator
+                        $('#loading-indicator').remove();
+                        
                         var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=DRAFT';
                         console.log("All files sent to " + datasetUrl);
                         if(draftExists) {
@@ -1040,10 +1047,12 @@ async function directUploadFinished() {
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
+                        // Remove the loading indicator
+                        $('#loading-indicator').remove();
+                        
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
-                        addMessage("failure", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
-                        //uploadFailure(jqXHR, thisFile);
+                        addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
                     }
                 });
                 //stop observer when we're done
