@@ -156,7 +156,7 @@ function updateFileSelectionMessage() {
     let totalFiles = Object.keys(rawFileMap).length;
     console.log('exists: ' + numExists);
     console.log('rawFileMap len: ' + totalFiles);
-    
+
     if (totalFiles === numExists) {
         addMessage('info', 'msgFilesAlreadyExist');
     } else if (numExists !== 0 && totalFiles > numExists) {
@@ -263,12 +263,23 @@ function addContentWarning(key, ...keyArgs) {
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
     var title = "";
+    var authors = "";
     var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid;
     draftExists = data.latestVersionPublishingState && data.latestVersionPublishingState === "DRAFT";
 
     for (var field in mdFields) {
         if (mdFields[field].typeName === "title") {
             title = mdFields[field].value;
+        }
+        if (mdFields[field].typeName === "author") {
+            var authorFields = mdFields[field].value;
+            for (var author in authorFields) {
+                if (authors.length > 0) {
+                    authors = authors + "; ";
+                }
+                authors = authors
+                    + authorFields[author].authorName.value;
+            }
         }
     }
     let mdDiv = $('<div/>').append($('<h2/>').text(getLocalizedString(dvLocale, 'uploadingTo')).append($('<a/>').prop("href", datasetUrl).prop('target', '_blank').text(title)));
@@ -438,7 +449,7 @@ function addCloseButton() {
         }));
     }
 }
-        
+
 /**
  * Removes the close button from the UI
  */
@@ -460,7 +471,7 @@ function addUploadButton() {
     } else {
         $('#upload').removeClass('disabled').prop('disabled', false)
     }
-    
+
 }
 
 /**
@@ -1120,13 +1131,13 @@ async function directUploadFinished() {
                 console.log(JSON.stringify(body));
                 let fd = new FormData();
                 fd.append('jsonData', JSON.stringify(body));
-                
+
                 // Add a loading indicator before making the AJAX call
                 $('#messages').append($('<div/>').attr('id', 'loading-indicator').addClass('pending')
                     .html('<div class="spinner"></div>' + formatMessage('msgRegisteringFiles')));
                 // Remove the refresh button when uploads start
                 removeRefreshButton();
-                
+
                 $.ajax({
                     url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
                     headers: { "X-Dataverse-key": apiKey },
@@ -1140,7 +1151,7 @@ async function directUploadFinished() {
                     success: function(body, statusText, jqXHR) {
                         // Remove the loading indicator
                         $('#loading-indicator').remove();
-                        
+
                         var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=DRAFT';
                         console.log("All files sent to " + datasetUrl);
                         if(draftExists) {
@@ -1155,7 +1166,7 @@ async function directUploadFinished() {
                     error: function(jqXHR, textStatus, errorThrown) {
                         // Remove the loading indicator
                         $('#loading-indicator').remove();
-                        
+
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
                         addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
