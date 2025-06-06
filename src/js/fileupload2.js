@@ -113,7 +113,7 @@ $(document).ready(function() {
         var files = e.target.files; // FileList
         for (let i = 0; i < files.length; ++i) {
             let f = files[i];
-            console.log('before ' + f.webkitRelativePath);
+            //console.log('before ' + f.webkitRelativePath);
             queueFileForDirectUpload(f);
             console.debug(files[i].webkitRelativePath);
             //              output.innerText  = output.innerText + files[i].webkitRelativePath+"\n";
@@ -354,7 +354,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
                 if ('directoryLabel' in entry) {
                     filepath = entry.directoryLabel + '/' + filepath;
                 }
-                console.log("Storing: " + filepath);
+                //console.log("Storing: " + filepath);
                 existingFiles[filepath] = df.checksum;
                 if (convertedFile) {
                     convertedFileNameMap[removeExtension(filepath)] = filepath;
@@ -596,9 +596,9 @@ var fileUpload = class fileUploadClass {
             dataType: "json",
             processData: false,
             success: function(body, statusText, jqXHR) {
-                console.log(body);
+                //console.log(body);
                 let data = body.data;
-                console.log(data);
+                //console.log(data);
                 this.storageId = data.storageIdentifier;
                 delete data.storageIdentifier;
                 this.urls = data;
@@ -926,7 +926,6 @@ function queueFileForDirectUpload(file) {
     row.append(fnameElement)
         .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui-fileupload-progress'))
         .append($('<div/>').addClass('ui-fileupload-cancel'));
-    console.log('adding click handler for file_' + fUpload.id);
     $('#file_' + fUpload.id).click(toggleUpload);
 }
 
@@ -1102,7 +1101,7 @@ async function directUploadFinished() {
                     //Remove bad file name chars
                     entry.fileName = fup.file.name.replace(/[:<>;#/"*|?\\]/g,'_');
                     let path = fup.file.webkitRelativePath;
-                    console.log(path);
+                    //console.log(path);
                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
                     //Remove bad path chars
                     path = path.replace(/[^\w\-\.\\\/ ]+/g,'_');
