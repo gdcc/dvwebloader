@@ -378,7 +378,9 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
  */
 function addRefreshButton() {
     if ($('#refreshDataset').length === 0) {
-        $('<button/>').prop('id', 'refreshDataset')
+    $('#button-container .button-right').append(
+            $('<button/>')
+            .prop('id', 'refreshDataset')
             .text(getLocalizedString(dvLocale, 'refreshDataset'))
             .addClass('button secondary')
             .click(async function() {
@@ -407,8 +409,7 @@ function addRefreshButton() {
                         addMessage('error', 'msgErrorRefreshingDataset');
                     }
                 }
-            })
-            .insertBefore($('#messages'));
+            }));
     } else {
         $('#refreshDataset').removeClass('disabled').prop('disabled', false);
     }
@@ -420,19 +421,21 @@ function addRefreshButton() {
 function removeRefreshButton() {
     $('#refreshDataset').remove();
 }
+
+
 /**
  * Adds a close button to the UI
  */
 function addCloseButton() {
     if ($('#closeWebloader').length === 0) {
     // Add close button
-     $('<button/>').prop('id', 'closeWebloader')
-            .text(getLocalizedString(dvLocale, 'close'))
-            .addClass('button secondary')
+     $('#button-container .button-left').append($('<button/>')
+         .prop('id', 'closeWebloader')
+         .text(getLocalizedString(dvLocale, 'closeWindow'))
+         .addClass('button secondary')
         .click(function() {
             window.close();
-        })
-        .insertBefore($('#messages'));
+        }));
     }
 }
         
@@ -449,12 +452,11 @@ function removeCloseButton() {
 
 function addUploadButton() {
     if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
-        $('<button/>')
-            .prop('id', 'upload')
-            .text(getLocalizedString(dvLocale, 'startUpload'))
-            .addClass('button')
-            .click(startUploads)
-            .insertBefore($('#messages'));
+    $('#button-container .button-left').append($('<button/>')
+        .prop('id', 'upload')
+        .text(getLocalizedString(dvLocale, 'startUpload'))
+        .addClass('button')
+        .click(startUploads));
     } else {
         $('#upload').removeClass('disabled').prop('disabled', false)
     }
