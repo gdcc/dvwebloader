@@ -135,3 +135,21 @@ h1 {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.button-flex-container {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    min-height: 40px;
+}
+
+.button-left {
+    display: flex;
+    align-items: center;
+}
+
+.button-right {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between buttons */
+}
