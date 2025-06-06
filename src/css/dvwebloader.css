@@ -84,7 +84,7 @@ h1 {
     width: 58%;
     display:inline-block;
 }
-.button:disabled {
+.button.disabled {
     background: gray;
     border-color: gray!important;
 }
@@ -103,6 +103,13 @@ h1 {
    border-color: chocolate;
    border-width: 2px;
    border-style: solid;
+}
+
+#refreshDataset {
+  float:right;
+}
+.button {
+  font-size:16px;
 }
 
 .pending {
