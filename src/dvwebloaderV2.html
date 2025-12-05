@@ -7,7 +7,7 @@
         <!-- Configuration: set before the bundle loads -->
         <script>
             window.dvWebloaderConfig = {
-                useS3Tagging: true,      // Enable S3 tagging (standard S3)
+                useS3Tagging: false,     // Disable S3 tagging (for MinIO/S3-compatible storage)
                 maxRetries: 3,           // Retry multipart uploads up to 3 times
                 uploadTimeoutMs: 0,      // No timeout (0 = unlimited)
                 disableMD5Checksum: false // Calculate MD5 checksums
@@ -60,7 +60,7 @@
             }
         </style>
         <!-- The bundle includes all CSS inlined via vite-plugin-css-injected-by-js -->
-        <script type="module" src="lib/dvwebloader-v2.js"></script>
+        <script type="module" src="dvwebloader-v2.js"></script>
     </head>
     <body>
         <div class="page-container">
