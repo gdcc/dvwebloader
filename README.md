@@ -4,6 +4,49 @@ A web tool for uploading folders of files to a Dataverse dataset. See [the wiki]
 The Hosted version at https://gdcc.github.io/dvwebloader can be used for testing. You should fork or install a local copy for production use (to avoid changes made in this repository immediately being available from your Dataverse installation.)
 You may also want to run the localinstall.sh script in the directory you download to to make and local copies of the libraries used.
 
+## DVWebloader Versions
+
+### V1 (Original)
+- **File**: `src/dvwebloader.html`
+- **Technology**: Vanilla JavaScript with jQuery
+- Lightweight and well-tested
+
+### V2 (Experimental)
+
+> ⚠️ **Prototype / Experimental**: V2 is currently a prototype for testing purposes. It may have bugs or missing features. Use V1 for production workloads.
+
+- **File**: `src/dvwebloaderV2.html`
+- **Technology**: React 18, TypeScript (pre-built bundle)
+
+V2 reuses the file upload components from the new Dataverse SPA ([dataverse-frontend](https://github.com/IQSS/dataverse-frontend)) and the official JavaScript client library ([dataverse-client-javascript](https://github.com/IQSS/dataverse-client-javascript)). This ensures consistency with the main Dataverse application and reduces code duplication.
+
+The bundle is built from `dataverse-frontend/src/standalone-uploader/` and packaged as a standalone JavaScript file that can run independently of the SPA.
+
+#### V2 Configuration
+
+Configuration is set via `window.dvWebloaderConfig` in the HTML file before the bundle loads:
+
+```html
+<script>
+    window.dvWebloaderConfig = {
+        useS3Tagging: true,      // Set to false for S3-compatible storage (e.g., MinIO)
+        maxRetries: 3,           // Retry multipart uploads up to N times
+        uploadTimeoutMs: 0,      // Timeout in ms (0 = unlimited)
+        disableMD5Checksum: false // Set to true to skip checksum calculation
+    };
+</script>
+<script type="module" src="lib/dvwebloader-v2.js"></script>
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `useS3Tagging` | `true` | Set to `false` to disable S3 tagging (for S3-compatible storage) |
+| `maxRetries` | `3` | Maximum retries for multipart upload parts |
+| `uploadTimeoutMs` | `0` | Upload timeout in ms (`0` = unlimited) |
+| `disableMD5Checksum` | `false` | Set to `true` to skip checksum calculation |
+
+## Integration
+
 ### Current integration mechanism (v5.13+):
 
 Configure dvwebloader as an integrated [UploadMethod](https://guides.dataverse.org/en/latest/installation/config.html#uploadmethods):
