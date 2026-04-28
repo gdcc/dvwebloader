@@ -48,6 +48,11 @@ var existingFiles;
 var convertedFileNameMap;
 var queryParams;
 var dvLocale;
+var uploadLimits = {
+    numberOfFilesRemaining: null,
+    storageQuotaRemaining: null,
+    successfullyRetrieved: false
+};
 
 $(document).ready(function() {
     startUploadsHasBeenCalled  = false;
@@ -139,12 +144,13 @@ $(document).ready(function() {
                     .attr('type', 'number')
                     .attr('id', 'maxFilesInput')
                     .attr('min', '1')
-                    .attr('max', totalFiles)
-                    .attr('value', totalFiles)
+                    .attr('max', getEffectiveMaxFiles(totalFiles))
+                    .attr('value', getEffectiveMaxFiles(totalFiles))
                     .addClass('input-sm')
                     .on('change', updateMaxFiles))
                   .insertBefore($('#filelist'));
 
+            selectMaxNewFiles();
     };
 });
 
@@ -168,8 +174,12 @@ function updateFileSelectionMessage() {
 
 function updateMaxFiles() {
     let maxInput = $('#maxFilesInput');
-    let maxFiles = parseInt(maxInput.val());
-    let totalFiles = maxInput.attr('max');
+    let maxFiles = parseInt(maxInput.val(), 10);
+    let totalFiles = parseInt(maxInput.attr('max'), 10);
+    if (isNaN(maxFiles) || maxFiles < 1) {
+        maxFiles = Math.max(1, totalFiles);
+        $('#maxFilesInput').val(maxFiles);
+    }
     if(maxFiles > totalFiles) {
         maxFiles = totalFiles;
         $('#maxFilesInput').val(totalFiles);
@@ -254,10 +264,112 @@ function addMessage(type, key, ...keyArgs) {
         .append($('<div/>').addClass(type).html(msg));
 }
 
+function ensureUploadLimitsField() {
+    if ($('#upload-limits').length === 0) {
+        $('<div/>').prop('id', 'upload-limits').insertAfter($('#messages'));
+    }
+}
+
+function setUploadLimitsMessage(type, key, ...keyArgs) {
+    ensureUploadLimitsField();
+    let msg = formatMessage(key, keyArgs);
+    $('#upload-limits').html('')
+        .append($('<div/>').addClass(type).html(msg));
+}
+
 function addContentWarning(key, ...keyArgs) {
     let msg = formatMessage(key, keyArgs);
     $('#content-warnings').html('')
         .append($('<div/>').addClass('warn').html(msg));
+}
+
+function formatBytes(bytes) {
+    if (bytes === null || typeof bytes === 'undefined') {
+        return getLocalizedString(dvLocale, 'msgUnlimited');
+    }
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let value = bytes;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value = value / 1024;
+        unitIndex += 1;
+    }
+    const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+    return value.toFixed(precision) + ' ' + units[unitIndex];
+}
+
+function getCheckedFilesTotalSize() {
+    let totalSize = 0;
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
+        let checkbox = $(this).children('input[type="checkbox"]');
+        if (checkbox.prop('checked')) {
+            let fileName = $(this).find('.ui-fileupload-filename').text();
+            let file = rawFileMap[fileName];
+            if (file) {
+                totalSize += file.size;
+            }
+        }
+    });
+    return totalSize;
+}
+
+function getCheckedFilesCount() {
+    return $('.ui-fileupload-row').children('input:checked').length;
+}
+
+function canSelectionFitStorageQuota(totalSize) {
+    return uploadLimits.storageQuotaRemaining === null || totalSize <= uploadLimits.storageQuotaRemaining;
+}
+
+function updateUploadLimitsMessage() {
+    let filesRemaining = uploadLimits.numberOfFilesRemaining;
+    let storageRemaining = uploadLimits.storageQuotaRemaining;
+    if (!uploadLimits.successfullyRetrieved) {
+        setUploadLimitsMessage('info', 'msgUploadLimitsUnavailable');
+    } else if (filesRemaining !== null || storageRemaining !== null) {
+        setUploadLimitsMessage('info', 'msgUploadLimits',
+            filesRemaining === null ? getLocalizedString(dvLocale, 'msgUnlimited') : filesRemaining,
+            formatBytes(storageRemaining));
+    }
+}
+
+async function fetchUploadLimits() {
+    uploadLimits.successfullyRetrieved = false;
+
+    try {
+        const uploadLimitsResponse = await $.ajax({
+            url: siteUrl + '/api/datasets/:persistentId/uploadlimits?persistentId=' + datasetPid,
+            headers: { "X-Dataverse-key": apiKey },
+            type: 'GET',
+            cache: false,
+            dataType: 'json'
+        });
+
+        uploadLimits.successfullyRetrieved = true;
+
+        const limits = uploadLimitsResponse && uploadLimitsResponse.data
+            ? uploadLimitsResponse.data.uploadLimits
+            : null;
+
+        uploadLimits.numberOfFilesRemaining = (limits && typeof limits.numberOfFilesRemaining === 'number')
+            ? limits.numberOfFilesRemaining
+            : null;
+        uploadLimits.storageQuotaRemaining = (limits && typeof limits.storageQuotaRemaining === 'number')
+            ? limits.storageQuotaRemaining
+            : null;
+    } catch (error) {
+        console.log('Upload limits unavailable:', error);
+        uploadLimits.successfullyRetrieved = false;
+        uploadLimits.numberOfFilesRemaining = null;
+        uploadLimits.storageQuotaRemaining = null;
+    }
+}
+
+function getEffectiveMaxFiles(totalFiles) {
+    if (uploadLimits.numberOfFilesRemaining === null) {
+        return totalFiles;
+    }
+    return Math.min(totalFiles, Math.max(uploadLimits.numberOfFilesRemaining, 0));
 }
 
 async function populatePageMetadata(data) {
@@ -282,6 +394,7 @@ async function populatePageMetadata(data) {
 async function retrieveDatasetInfo(isInitialLoad = true) {
     addMessage('info', 'msgGettingDatasetInfo');
     try {
+        await fetchUploadLimits();
         // First, check for dataset locks
         const locksResponse = await $.ajax({
             url: siteUrl + '/api/datasets/:persistentId/locks?persistentId=' + datasetPid,
@@ -362,10 +475,20 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
             }
         }
         $('#files').prop('disabled', false);
+        addMessage('info', 'msgReadyToStart');
         if(isInitialLoad || $('#filelist>.ui-fileupload-files').length === 0) {
-            addMessage('info', 'msgReadyToStart');
+            updateUploadLimitsMessage();
             // Add the refresh button after initial load
             addRefreshButton();
+        } else {
+            let totalFiles = Object.keys(rawFileMap).length;
+            let effectiveMax = getEffectiveMaxFiles(totalFiles);
+            $('#maxFilesInput').attr('max', effectiveMax);
+            if (parseInt($('#maxFilesInput').val(), 10) > effectiveMax) {
+                $('#maxFilesInput').val(effectiveMax);
+            }
+            updateUploadLimitsMessage();
+            toggleUpload();
         }
     } catch (error) {
         console.log('Error:', error);
