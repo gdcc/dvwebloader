@@ -604,6 +604,70 @@ async function cancelDatasetEdit() {
 
 
 var inDataverseCall = false;
+
+const uploadUrlRateWindowMs = 60 * 1000;
+const uploadUrlMaxRetries = 5;
+const uploadUrlBaseRetryDelayMs = 2000;
+const uploadUrlMaxRetryDelayMs = 60 * 1000;
+var uploadUrlRequestTimestamps = [];
+var uploadUrlCooldownUntil = 0;
+var uploadUrlInterRequestDelayMs = 0;
+var lastUploadUrlRequestTimestamp = 0;
+
+function pruneUploadUrlRequestTimestamps(now = Date.now()) {
+  uploadUrlRequestTimestamps = uploadUrlRequestTimestamps.filter(
+    timestamp => now - timestamp < uploadUrlRateWindowMs
+  );
+}
+
+function getUploadUrlAverageRatePerMinute() {
+  pruneUploadUrlRequestTimestamps();
+  console.log('Upload URL request average rate over last minute: ' + uploadUrlRequestTimestamps.length + '/minute');
+  return uploadUrlRequestTimestamps.length;
+}
+
+function recordUploadUrlRequest() {
+  let now = Date.now();
+  uploadUrlRequestTimestamps.push(now);
+  lastUploadUrlRequestTimestamp = now;
+}
+
+function getRetryAfterDelayMs(jqXHR) {
+  let retryAfter = jqXHR && jqXHR.getResponseHeader ? jqXHR.getResponseHeader('Retry-After') : null;
+
+  if (!retryAfter) {
+    return null;
+  }
+
+  let retryAfterSeconds = parseInt(retryAfter, 10);
+  if (!Number.isNaN(retryAfterSeconds)) {
+    return retryAfterSeconds * 1000;
+  }
+
+  let retryAfterDate = Date.parse(retryAfter);
+  if (!Number.isNaN(retryAfterDate)) {
+    return Math.max(0, retryAfterDate - Date.now());
+  }
+
+  return null;
+}
+
+async function waitForUploadUrlCooldown() {
+  let now = Date.now();
+  let waitMs = Math.max(
+    uploadUrlCooldownUntil - now,
+    (lastUploadUrlRequestTimestamp + uploadUrlInterRequestDelayMs) - now
+  );
+  if (waitMs > 0) {
+    console.log('Waiting ' + waitMs + 'ms before requesting another upload URL (cooldown or rate limiting)');
+    await sleep(waitMs);
+  }
+}
+
+function updateUploadUrlCooldown(delayMs) {
+  uploadUrlCooldownUntil = Math.max(uploadUrlCooldownUntil, Date.now() + delayMs);
+}
+
 var fileUpload = class fileUploadClass {
     constructor(file) {
         this.file = file;
@@ -623,7 +687,10 @@ var fileUpload = class fileUploadClass {
         this.requestDirectUploadUrls();
     }
 
-    async requestDirectUploadUrls() {
+    async requestDirectUploadUrls(retryCount = 0) {
+        await waitForUploadUrlCooldown();
+        recordUploadUrlRequest();
+
         $.ajax({
             url: siteUrl + '/api/datasets/:persistentId/uploadurls?persistentId=' + datasetPid + '&size=' + this.file.size,
             headers: { "X-Dataverse-key": apiKey },
@@ -643,9 +710,38 @@ var fileUpload = class fileUploadClass {
                 this.doUpload();
                 console.log(JSON.stringify(data));
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+            error: async function(jqXHR, textStatus, errorThrown) {
                 console.log('Failure: ' + jqXHR.status);
                 console.log('Failure: ' + errorThrown);
+
+                if (jqXHR.status === 429 && retryCount < uploadUrlMaxRetries && directUploadEnabled) {
+                    let retryAfterDelayMs = getRetryAfterDelayMs(jqXHR);
+
+                    // Recovery wait time for this specific 429 to clear
+                    let recoveryDelayMs = Math.max(
+                        retryAfterDelayMs || 0,
+                        Math.min(uploadUrlBaseRetryDelayMs * Math.pow(2, retryCount), uploadUrlMaxRetryDelayMs)
+                    );
+
+                    // Increase the persistent inter-request delay to slow down future calls
+                    // Adding 200ms to the delay each time a 429 is encountered
+                    uploadUrlInterRequestDelayMs += 50;
+
+                    updateUploadUrlCooldown(recoveryDelayMs);
+
+                    console.log(
+                        'Received 429 while requesting upload URL for ' + this.file.name +
+                        '. Recovery wait: ' + recoveryDelayMs + 'ms. Persistent delay increased to: ' +
+                        uploadUrlInterRequestDelayMs + 'ms. Attempt ' +
+                        (retryCount + 1) + ' of ' + uploadUrlMaxRetries
+                    );
+
+                    await sleep(recoveryDelayMs);
+                    this.requestDirectUploadUrls(retryCount + 1);
+                    return;
+                }
+
+                inDataverseCall = false;
                 uploadFailure(jqXHR, this.file);
             }
         });
