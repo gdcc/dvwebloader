@@ -747,6 +747,7 @@ var fileUpload = class fileUploadClass {
         });
     }
 
+
     async doUpload() {
         this.state = UploadState.UPLOADING;
         var thisFile = curFile;
@@ -1294,7 +1295,11 @@ async function directUploadFinished() {
 
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
-                        addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
+                        if (jqXHR.status === 504 || textStatus === 'timeout') {
+                            addMessage("error", "msgUploadToDataverseTimeout");
+                        } else {
+                            addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
+                        }
                         startUploadsHasBeenCalled = false;
                         addCloseButton();
                         addRefreshButton();
