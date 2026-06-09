@@ -239,7 +239,7 @@ function initSpanTxt(htmlId, key) {
 
 function formatMessage(key, keyArgs) {
     let msg = getLocalizedString(dvLocale, key);
-    
+
     if(keyArgs && Array.isArray(keyArgs)) {
         for (var i = 0; i < keyArgs.length; i++) {
             msg = msg.replaceAll('{'+i+'}', keyArgs[i]);
@@ -407,8 +407,7 @@ function addRefreshButton() {
                             $('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
                             removeCloseButton();
 
-                            deselectAllFiles();
-                            selectMaxNewFiles();
+                            refreshListedFileStates();
                             // Clear progress bars from previous uploads
                             $('.ui-fileupload-progress progress').remove();
                             // Reset any error messages or states
@@ -433,6 +432,33 @@ function removeRefreshButton() {
     $('#refreshDataset').remove();
 }
 
+function sanitizeUploadPath(file, origPath) {
+  let path = origPath.substring(0, origPath.length - file.name.length);
+  path = path.replace(/[^\w\-\.\\\/ ]+/g, '_');
+  return path.concat(file.name.replace(/[:<>;#/"*|?\\]/g, '_'));
+}
+
+function refreshListedFileStates() {
+  $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
+    let row = $(this);
+    let origPath = row.find('.ui-fileupload-filename').text();
+    let file = rawFileMap[origPath];
+
+    if (!file) {
+      row.find('input[type="checkbox"]').prop('checked', false);
+      return;
+    }
+
+    let path = sanitizeUploadPath(file, origPath);
+    let fileExists = (path in existingFiles) || (removeExtension(path) in convertedFileNameMap);
+
+    row.toggleClass('file-exists', fileExists);
+    row.find('input[type="checkbox"]').prop('checked', !fileExists);
+  });
+
+  selectMaxNewFiles();
+  updateFileSelectionMessage();
+}
 
 /**
  * Adds a close button to the UI
@@ -628,7 +654,7 @@ var fileUpload = class fileUploadClass {
     async doUpload() {
         this.state = UploadState.UPLOADING;
         var thisFile = curFile;
-        
+
         //This appears to be the earliest point when the file table has been populated, and, since we don't know how many table entries have had ids added already, we check
         var filerows = $('.ui-fileupload-files .ui-fileupload-row');
         //Add an id attribute to each entry so we can later match progress and errors with the right entry
@@ -658,9 +684,12 @@ var fileUpload = class fileUploadClass {
         progBar.html('');
         progBar.append($('<progress/>').attr('class', 'ui-progressbar ui-widget ui-widget-content ui-corner-all'));
         if (this.urls.hasOwnProperty("url")) {
+            const uploadHeaders = this.urls.url.toLowerCase().includes("x-amz-tagging")
+                ? { "x-amz-tagging": "dv-state=temp" }
+                : {};
             $.ajax({
                 url: this.urls.url,
-                headers: { "x-amz-tagging": "dv-state=temp" },
+                headers: uploadHeaders,
                 type: 'PUT',
                 data: this.file,
                 context: this,
@@ -890,7 +919,7 @@ function queueFileForDirectUpload(file) {
     var fUpload = new fileUpload(file);
     let send = true;
     let origPath = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf('/') + 1);
-    
+
     //Remove filename part
     let path =origPath.substring(0, origPath.length - file.name.length);
     let badPath = (path.match(/^[\w\-\.\\\/ ]*$/)===null);
@@ -903,7 +932,7 @@ function queueFileForDirectUpload(file) {
     }
     //Re-Add filename, munge filename if needed
     path=path.concat(file.name.replace(/[:<>;#/"*|?\\]/g,'_'));
-    
+
     //Now check versus existing files
     if ((path in existingFiles) || (removeExtension(path) in convertedFileNameMap)) {
         send = false;
