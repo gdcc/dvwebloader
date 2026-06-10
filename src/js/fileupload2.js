@@ -7,6 +7,7 @@ var rawFileMap = {};
 var toRegisterFileList = [];
 var observer2 = null;
 var numDone = 0;
+var numDoneCounter = 0;
 var delay = 100; //milliseconds
 var draftExists = false;
 var UploadState = {
@@ -35,13 +36,22 @@ var getUpId = (function() {
     };
 })();
 //How many files are completely done
-var finishFile = (function() {
-    var counter = 0;
-    return function() {
-        counter += 1;
-        return counter;
-    };
-})();
+function finishFile() {
+    numDoneCounter += 1;
+    return numDoneCounter;
+}
+
+/**
+ * Resets the upload state variables and counters
+ */
+function resetUploadState() {
+    toRegisterFileList = [];
+    fileList = [];
+    curFile = 0;
+    numDoneCounter = 0;
+    numDone = 0;
+    filesInProgress = 0;
+}
 var siteUrl;
 var datasetPid;
 var apiKey;
@@ -423,6 +433,10 @@ function addRefreshButton() {
                     try {
                         // Call retrieveDatasetInfo with isInitialLoad=false to indicate this is a refresh
                         await retrieveDatasetInfo(false);
+
+                        // Clear any previous upload information
+                        resetUploadState();
+
                         // Only manipulate files if the file list exists and has items
                         if ($('#filelist>.ui-fileupload-files').length > 0 &&
                             $('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
@@ -1171,6 +1185,7 @@ function startUploads() {
         return;
     }
     startUploadsHasBeenCalled = true;
+    resetUploadState();
     $('#refreshDataset').addClass('disabled').prop('disabled', true);
     $('#upload').remove();
     // Also disable directory selection while uploading
@@ -1347,6 +1362,7 @@ async function directUploadFinished() {
                           addMessage('success', 'msgUploadCompleteNewDraft', datasetUrl);
                         }
                         startUploadsHasBeenCalled = false;
+                        resetUploadState();
                         addCloseButton();
                         addRefreshButton();
                     },
