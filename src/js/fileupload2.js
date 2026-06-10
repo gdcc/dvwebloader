@@ -1,6 +1,7 @@
 import getLocalizedString from './lang.js';
 
 let startUploadsHasBeenCalled = false;
+var isRetrievingDatasetInfo = false;
 var fileList = [];
 var rawFileMap = {};
 var toRegisterFileList = [];
@@ -61,6 +62,7 @@ $(document).ready(function() {
     dvLocale = queryParams.get("dvLocale");
     console.log('locale: ' + dvLocale);
     directUploadEnabled = true;
+    isRetrievingDatasetInfo = true;
     initTranslation();
     addMessage('info', 'msgGettingDatasetInfo');
     fetch(siteUrl + "/api/files/fixityAlgorithm")
@@ -73,9 +75,13 @@ $(document).ready(function() {
             }
         }).then(checksumAlgJson => {
             checksumAlgName = "MD5";
-            if (checksumAlgJson != null) {
+            if (checksumAlgJson != null && checksumAlgJson.data) {
                 checksumAlgName = checksumAlgJson.data.message;
             }
+        })
+        .catch(error => {
+            console.log("Error fetching fixity algorithm, using MD5: " + error);
+            checksumAlgName = "MD5";
         })
         .then(() => {
             var head = document.getElementsByTagName('head')[0];
@@ -291,6 +297,11 @@ async function populatePageMetadata(data) {
  * @param {boolean} isInitialLoad - Whether this is the initial load or a refresh
  */
 async function retrieveDatasetInfo(isInitialLoad = true) {
+    isRetrievingDatasetInfo = true;
+    $('#files').prop('disabled', true);
+    if ($('#upload').length > 0) {
+        $('#upload').addClass('disabled').prop('disabled', true);
+    }
     addMessage('info', 'msgGettingDatasetInfo');
     try {
         // First, check for dataset locks
@@ -312,6 +323,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
             addMessage('error', 'msgDatasetLocked');
             disableUploadFunctionality();
             addRefreshButton();
+            isRetrievingDatasetInfo = false;
             return;
         }
 
@@ -329,6 +341,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
                 addMessage('error', 'msgDatasetLockedInReview');
                 disableUploadFunctionality();
                 addRefreshButton();
+                isRetrievingDatasetInfo = false;
                 return;
             }
         }
@@ -373,12 +386,20 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
             }
         }
         $('#files').prop('disabled', false);
+        isRetrievingDatasetInfo = false;
         if(isInitialLoad || $('#filelist>.ui-fileupload-files').length === 0) {
             addMessage('info', 'msgReadyToStart');
             // Add the refresh button after initial load
             addRefreshButton();
         }
+
+        // Refresh listed files in case any were selected before this call finished
+        if ($('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
+            refreshListedFileStates();
+        }
     } catch (error) {
+        isRetrievingDatasetInfo = false;
+        $('#files').prop('disabled', false);
         console.log('Error:', error);
         addMessage('error', 'msgErrorRetrievingDataset');
         }
@@ -494,10 +515,13 @@ function addUploadButton() {
         .text(getLocalizedString(dvLocale, 'startUpload'))
         .addClass('button')
         .click(startUploads));
-    } else {
-        $('#upload').removeClass('disabled').prop('disabled', false)
     }
 
+    if (isRetrievingDatasetInfo) {
+        $('#upload').addClass('disabled').prop('disabled', true);
+    } else {
+        $('#upload').removeClass('disabled').prop('disabled', false);
+    }
 }
 
 /**
