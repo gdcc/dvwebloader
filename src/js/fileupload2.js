@@ -710,7 +710,7 @@ var fileUpload = class fileUploadClass {
                 this.doUpload();
                 console.log(JSON.stringify(data));
             },
-            error: async function(jqXHR, textStatus, errorThrown) {
+                            error: async function(jqXHR, textStatus, errorThrown) {
                 console.log('Failure: ' + jqXHR.status);
                 console.log('Failure: ' + errorThrown);
 
@@ -724,8 +724,8 @@ var fileUpload = class fileUploadClass {
                     );
 
                     // Increase the persistent inter-request delay to slow down future calls
-                    // Adding 200ms to the delay each time a 429 is encountered
-                    uploadUrlInterRequestDelayMs += 50;
+                    // Adding 50ms to the delay each time a 429 is encountered
+                    uploadUrlInterRequestDelayMs +=50;
 
                     updateUploadUrlCooldown(recoveryDelayMs);
 
@@ -742,7 +742,13 @@ var fileUpload = class fileUploadClass {
                 }
 
                 inDataverseCall = false;
-                uploadFailure(jqXHR, this.file);
+                // If it hasn't been moved to processing yet, do it now so the count is right
+                if (fileList.indexOf(this) !== -1) {
+                    fileList.splice(fileList.indexOf(this), 1);
+                    curFile = curFile + 1;
+                    filesInProgress = filesInProgress - 1;
+                }
+                uploadFailure(jqXHR, this.id);
             }
         });
     }
@@ -750,7 +756,6 @@ var fileUpload = class fileUploadClass {
 
     async doUpload() {
         this.state = UploadState.UPLOADING;
-        var thisFile = curFile;
 
         //This appears to be the earliest point when the file table has been populated, and, since we don't know how many table entries have had ids added already, we check
         var filerows = $('.ui-fileupload-files .ui-fileupload-row');
@@ -770,8 +775,17 @@ var fileUpload = class fileUploadClass {
         //Decrement number queued for processing
         console.log('Decrementing fip from :' + filesInProgress);
         filesInProgress = filesInProgress - 1;
-        fileList.splice(fileList.indexOf(this), 1);
+        if (fileList.indexOf(this) !== -1) {
+            fileList.splice(fileList.indexOf(this), 1);
+        }
+        this.thisFileIndex = curFile;
         curFile = curFile + 1;
+        
+        this.performActualUpload(fileNode);
+    }
+
+    async performActualUpload(fileNode) {
+        var thisFile = this.thisFileIndex;
         const progBar = fileNode.find('.ui-fileupload-progress');
         const cancelButton = fileNode.find('.ui-fileupload-cancel');
         var cancelled = false;
@@ -796,6 +810,8 @@ var fileUpload = class fileUploadClass {
                     //ToDo - cancelling abandons the file. It is marked as temp so can be cleaned up later, but would be good to remove now (requires either sending a presigned delete URL or adding a callback to delete only a temp file
                     if (!cancelled) {
                         this.reportUpload();
+                    } else {
+                        directUploadFinished();
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -918,15 +934,22 @@ var fileUpload = class fileUploadClass {
         if (!allGood) {
             if (this.alreadyRetried) {
                 console.log('Error after retrying ' + this.file.name);
-                uploadFailure(null, this.file.name);
+                uploadFailure(null, this.id);
                 this.cancelMPUpload();
             } else {
                 this.alreadyRetried = true;
-                this.doUpload();
+                // Don't re-call doUpload() as it manages queue/counts which are already done for this file
+                this.retryMultipartUpload();
             }
         } else {
             this.finishMPUpload();
         }
+    }
+
+    retryMultipartUpload() {
+        var files = $('.ui-fileupload-files');
+        var fileNode = files.find("[upid='file_" + this.id + "']");
+        this.performActualUpload(fileNode);
     }
 
     reportUpload() {
@@ -1118,9 +1141,17 @@ function toggleUpload() {
 }
 
 function startUploads() {
+    let checked = $('#filelist>.ui-fileupload-files input:checked');
+    if (checked.length === 0) {
+        addMessage('info', 'msgNoFile');
+        return;
+    }
     startUploadsHasBeenCalled = true;
     $('#refreshDataset').addClass('disabled').prop('disabled', true);
     $('#upload').remove();
+    // Also disable directory selection while uploading
+    $('#files').prop('disabled', true);
+    $('label[for="files"]').addClass('disabled');
     // Add a message indicating uploads are in progress
     addMessage('info', 'msgUploadsInProgress');
     let checked = $('#filelist>.ui-fileupload-files input:checked');
@@ -1228,6 +1259,13 @@ async function directUploadFinished() {
             if (total === numDone) {
                 //   $('button[id$="AllUploadsFinished"]').trigger('click');
                 console.log("All files in S3");
+                if (toRegisterFileList.length === 0) {
+                    console.log("No files were successfully uploaded to S3.");
+                    startUploadsHasBeenCalled = false;
+                    addRefreshButton();
+                    addMessage('info', 'msgNoFile');
+                    return;
+                }
                 addMessage('info', 'msgUploadCompleteRegistering');
                 let body = [];
                 for (let i = 0; i < toRegisterFileList.length; i++) {
@@ -1322,6 +1360,12 @@ async function directUploadFinished() {
                 }
             }
         }
+    } else {
+        // Direct upload was disabled (e.g., cancelled)
+        if (total === numDone) {
+            startUploadsHasBeenCalled = false;
+            addRefreshButton();
+        }
     }
     await sleep(delay);
     inDataverseCall = false;
@@ -1350,14 +1394,14 @@ async function uploadFailure(jqXHR, upid, filename) {
     // only one element and that element includes a description of the row involved, including it's upid.
 
     var name = null;
-    var id = null;
+    var id = upid;
     if (jqXHR === null) {
         status = 1; //made up
         statusText = 'Aborting';
+        name = filename;
     } else if ((typeof jqXHR !== 'undefined')) {
         status = jqXHR.status;
         statusText = jqXHR.statusText;
-        id = upid;
         name = filename;
     } else {
         try {
@@ -1388,7 +1432,8 @@ async function uploadFailure(jqXHR, upid, filename) {
     node.appendChild(textnode);
     //Add the error message to the correct row
     for (let i = 0; i < rows.length; i++) {
-        if (rows[i].getAttribute('upid') === id) {
+        let rowUpid = rows[i].getAttribute('upid');
+        if (rowUpid === id || rowUpid === 'file_' + id) {
             //Remove any existing error message/only show last error (have seen two error 0 from one network disconnect)
             var err = rows[i].getElementsByClassName('ui-fileupload-error');
             if (err.length !== 0) {
