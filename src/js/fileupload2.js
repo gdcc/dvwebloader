@@ -44,8 +44,8 @@ var finishFile = (function() {
 var siteUrl;
 var datasetPid;
 var apiKey;
-var existingFiles;
-var convertedFileNameMap;
+var existingFiles = {};
+var convertedFileNameMap = {};
 var queryParams;
 var dvLocale;
 
@@ -1058,7 +1058,7 @@ function queueFileForDirectUpload(file) {
         send = false;
     }
     rawFileMap[origPath] = file;
-    let i = rawFileMap.length;
+    let i = Object.keys(rawFileMap).length;
     //startUploads();
     if (send) {
         addUploadButton();
@@ -1154,7 +1154,6 @@ function startUploads() {
     $('label[for="files"]').addClass('disabled');
     // Add a message indicating uploads are in progress
     addMessage('info', 'msgUploadsInProgress');
-    let checked = $('#filelist>.ui-fileupload-files input:checked');
     checked.each(function() {
         console.log('Name ' + $(this).siblings('.ui-fileupload-filename').text());
         let file = rawFileMap[$(this).siblings('.ui-fileupload-filename').text()];
