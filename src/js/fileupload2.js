@@ -1236,12 +1236,19 @@ function selectMaxNewFiles() {
         maxFiles = 0;
     }
     let checkedFiles = 0;
+    let currentTotalSize = 0;
     $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
-        if (checkedFiles < maxFiles && !$(this).hasClass('file-exists')) {
-            $(this).find('input[type="checkbox"]').prop('checked', true);
+        let row = $(this);
+        let fileName = row.find('.ui-fileupload-filename').text();
+        let file = rawFileMap[fileName];
+        let fileSize = file ? file.size : 0;
+
+        if (checkedFiles < maxFiles && !row.hasClass('file-exists') && canSelectionFitStorageQuota(currentTotalSize + fileSize)) {
+            row.find('input[type="checkbox"]').prop('checked', true);
             checkedFiles++;
+            currentTotalSize += fileSize;
         } else {
-            $(this).find('input[type="checkbox"]').prop('checked', false);
+            row.find('input[type="checkbox"]').prop('checked', false);
         }
     });
     toggleUpload();
@@ -1277,12 +1284,19 @@ function toggleUpload() {
 
     let warningMessage = null;
 
-    // If the checkbox is being checked and we're already at the max, prevent it
-    if (this && this.checked && checkedFiles > maxFiles) {
-        this.checked = false;
-        checkedFiles--;
-        checkedFilesTotalSize = getCheckedFilesTotalSize();
-        warningMessage = { type: 'warn', key: 'msgMaxFilesReached' };
+    // If the checkbox is being checked and we're already at the max or over quota, prevent it
+    if (this && this.checked) {
+        if (checkedFiles > maxFiles) {
+            this.checked = false;
+            checkedFiles--;
+            checkedFilesTotalSize = getCheckedFilesTotalSize();
+            warningMessage = { type: 'warn', key: 'msgMaxFilesReached' };
+        } else if (!canSelectionFitStorageQuota(checkedFilesTotalSize)) {
+            this.checked = false;
+            checkedFiles--;
+            checkedFilesTotalSize = getCheckedFilesTotalSize();
+            warningMessage = { type: 'warn', key: 'msgStorageQuotaReached' };
+        }
     }
 
     console.log('Checked files: ' + checkedFiles);
