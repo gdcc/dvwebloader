@@ -512,8 +512,6 @@ if(isInitialLoad || $('#filelist>.ui-fileupload-files').length === 0) {
     updateUploadLimitsMessage();
     toggleUpload();
 }
-        }
-
         // Refresh listed files in case any were selected before this call finished
         if ($('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
             refreshListedFileStates();
@@ -1186,7 +1184,7 @@ function queueFileForDirectUpload(file) {
         fileBlock = ($('<div/>').addClass('ui-fileupload-files')).appendTo($('#filelist'));
     }
     fUpload.id = fileBlock.children().length;
-    let row = ($('<div/>').addClass('ui-fileupload-row').attr('upid', 'file_' + fUpload.id)).appendTo(fileBlock);
+    let row = ($('<div/>').addClass('ui-fileupload-row').attr('upid', 'file_' + fUpload.id).attr('data-path', path)).appendTo(fileBlock);
     if (!send) {
         row.addClass('file-exists');
     }
@@ -1232,11 +1230,11 @@ function deselectAllFiles() {
     toggleUpload();
 }
 
-function markExistingSelectedFiles() {
+function refreshListedFileStates() {
     $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
         let row = $(this);
-        let fileName = row.find('.ui-fileupload-filename').text();
-        let existsInDataset = (fileName in existingFiles) || (removeExtension(fileName) in convertedFileNameMap);
+        let path = row.attr('data-path');
+        let existsInDataset = (path in existingFiles) || (removeExtension(path) in convertedFileNameMap);
         row.toggleClass('file-exists', existsInDataset);
         if (existsInDataset) {
             row.find('input[type="checkbox"]').prop('checked', false);
