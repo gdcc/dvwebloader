@@ -84,7 +84,7 @@ h1 {
     width: 58%;
     display:inline-block;
 }
-.button:disabled {
+.button.disabled {
     background: gray;
     border-color: gray!important;
 }

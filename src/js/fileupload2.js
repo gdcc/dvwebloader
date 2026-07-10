@@ -279,23 +279,12 @@ function addContentWarning(key, ...keyArgs) {
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
     var title = "";
-    var authors = "";
     var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid;
     draftExists = data.latestVersionPublishingState && data.latestVersionPublishingState === "DRAFT";
 
     for (var field in mdFields) {
         if (mdFields[field].typeName === "title") {
             title = mdFields[field].value;
-        }
-        if (mdFields[field].typeName === "author") {
-            var authorFields = mdFields[field].value;
-            for (var author in authorFields) {
-                if (authors.length > 0) {
-                    authors = authors + "; ";
-                }
-                authors = authors
-                    + authorFields[author].authorName.value;
-            }
         }
     }
     let mdDiv = $('<div/>').append($('<h2/>').text(getLocalizedString(dvLocale, 'uploadingTo')).append($('<a/>').prop("href", datasetUrl).prop('target', '_blank').text(title)));
@@ -466,85 +455,6 @@ function addRefreshButton() {
 function removeRefreshButton() {
     $('#refreshDataset').remove();
 }
-
-function sanitizeUploadPath(file, origPath) {
-  let path = origPath.substring(0, origPath.length - file.name.length);
-  path = path.replace(/[^\w\-\.\\\/ ]+/g, '_');
-  return path.concat(file.name.replace(/[:<>;#/"*|?\\]/g, '_'));
-}
-
-function refreshListedFileStates() {
-  $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
-    let row = $(this);
-    let origPath = row.find('.ui-fileupload-filename').text();
-    let file = rawFileMap[origPath];
-
-    if (!file) {
-      row.find('input[type="checkbox"]').prop('checked', false);
-      return;
-    }
-
-    let path = sanitizeUploadPath(file, origPath);
-    let fileExists = (path in existingFiles) || (removeExtension(path) in convertedFileNameMap);
-
-    row.toggleClass('file-exists', fileExists);
-    row.find('input[type="checkbox"]').prop('checked', !fileExists);
-  });
-
-  selectMaxNewFiles();
-  updateFileSelectionMessage();
-}
-
-/**
- * Adds a close button to the UI
- */
-function addCloseButton() {
-    if ($('#closeWebloader').length === 0) {
-    // Add close button
-     $('#button-container .button-left').append($('<button/>')
-         .prop('id', 'closeWebloader')
-         .text(getLocalizedString(dvLocale, 'closeWindow'))
-         .addClass('button secondary')
-        .click(function() {
-            window.close();
-        }));
-    }
-}
-
-/**
- * Removes the close button from the UI
- */
-function removeCloseButton() {
-    $('#closeWebloader').remove();
-}
-
-/**
- * Adds an upload button to the UI
- */
-
-function addUploadButton() {
-    if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
-    $('#button-container .button-left').append($('<button/>')
-        .prop('id', 'upload')
-        .text(getLocalizedString(dvLocale, 'startUpload'))
-        .addClass('button')
-        .click(startUploads));
-    }
-
-    if (isRetrievingDatasetInfo) {
-        $('#upload').addClass('disabled').prop('disabled', true);
-    } else {
-        $('#upload').removeClass('disabled').prop('disabled', false);
-    }
-}
-
-/**
- * Removes the upload button from the UI
- */
-function removeUploadButton() {
-    $('#upload').remove();
-}
-
 function disableUploadFunctionality() {
     $('#files').prop('disabled', true);
     $('.file-selection-buttons').hide();
@@ -818,7 +728,7 @@ var fileUpload = class fileUploadClass {
         }
         this.thisFileIndex = curFile;
         curFile = curFile + 1;
-        
+
         this.performActualUpload(fileNode);
     }
 
@@ -1179,6 +1089,11 @@ function toggleUpload() {
 }
 
 function startUploads() {
+    startUploadsHasBeenCalled = true;
+    $('#refreshDataset').addClass('disabled').prop('disabled', true);
+    $('#upload').remove();
+    // Add a message indicating uploads are in progress
+    addMessage('info', 'msgUploadsInProgress');
     let checked = $('#filelist>.ui-fileupload-files input:checked');
     if (checked.length === 0) {
         addMessage('info', 'msgNoFile');
