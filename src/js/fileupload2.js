@@ -384,6 +384,9 @@ async function fetchUploadLimits() {
 }
 
 function getEffectiveMaxFiles(totalFiles) {
+    if (uploadLimits.storageQuotaRemaining !== null && uploadLimits.storageQuotaRemaining <= 0) {
+        return 0;
+    }
     if (uploadLimits.numberOfFilesRemaining === null) {
         return totalFiles;
     }
@@ -517,10 +520,15 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
             addRefreshButton();
         } else {
             let totalFiles = Object.keys(rawFileMap).length;
+            let maxInput = $('#maxFilesInput');
+            let oldEffectiveMax = parseInt(maxInput.attr('max'), 10);
+            let currentVal = parseInt(maxInput.val(), 10);
             let effectiveMax = getEffectiveMaxFiles(totalFiles);
-            $('#maxFilesInput').attr('max', effectiveMax);
-            if (parseInt($('#maxFilesInput').val(), 10) > effectiveMax) {
-                $('#maxFilesInput').val(effectiveMax);
+
+            maxInput.attr('max', effectiveMax);
+            // If the current value was at the previous max, or is now above the new max, update it.
+            if (isNaN(oldEffectiveMax) || currentVal >= oldEffectiveMax || currentVal > effectiveMax) {
+                maxInput.val(effectiveMax);
             }
             toggleUpload();
         }
