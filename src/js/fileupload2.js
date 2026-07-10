@@ -450,9 +450,9 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
         if(isInitialLoad) {
             populatePageMetadata(data);
         }
+        existingFiles = {};
+        convertedFileNameMap = {};
         if (data.files !== null) {
-            existingFiles = {};
-            convertedFileNameMap = {};
             for (let i = 0; i < data.files.length; i++) {
                 let entry = data.files[i];
                 let df = entry.dataFile;
@@ -476,10 +476,9 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
         }
         $('#files').prop('disabled', false);
         addMessage('info', 'msgReadyToStart');
+        addRefreshButton();
         if(isInitialLoad || $('#filelist>.ui-fileupload-files').length === 0) {
             updateUploadLimitsMessage();
-            // Add the refresh button after initial load
-            addRefreshButton();
         } else {
             let totalFiles = Object.keys(rawFileMap).length;
             let effectiveMax = getEffectiveMaxFiles(totalFiles);
@@ -493,7 +492,8 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
     } catch (error) {
         console.log('Error:', error);
         addMessage('error', 'msgErrorRetrievingDataset');
-        }
+        addRefreshButton();
+    }
 }
 
 /**
@@ -519,6 +519,7 @@ function addRefreshButton() {
                             $('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
                             removeCloseButton();
 
+                            markExistingSelectedFiles();
                             deselectAllFiles();
                             selectMaxNewFiles();
                             // Clear progress bars from previous uploads
@@ -574,16 +575,16 @@ function removeCloseButton() {
  */
 
 function addUploadButton() {
-    if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
-    $('#button-container .button-left').append($('<button/>')
-        .prop('id', 'upload')
-        .text(getLocalizedString(dvLocale, 'startUpload'))
-        .addClass('button')
-        .click(startUploads));
-    } else {
-        $('#upload').removeClass('disabled').prop('disabled', false)
+    if ($('#upload').length === 0) {
+        $('#button-container .button-left').append($('<button/>')
+            .prop('id', 'upload')
+            .text(getLocalizedString(dvLocale, 'startUpload'))
+            .addClass('button')
+            .click(startUploads));
     }
-    
+    if (!startUploadsHasBeenCalled) {
+        $('#upload').removeClass('disabled').prop('disabled', false);
+    }
 }
 
 /**
@@ -1054,7 +1055,10 @@ function queueFileForDirectUpload(file) {
 
 // Function to select all files not in dataset
 function selectMaxNewFiles() {
-    let maxFiles = parseInt($('#maxFilesInput').val());
+    let maxFiles = parseInt($('#maxFilesInput').val(), 10);
+    if (isNaN(maxFiles) || maxFiles < 0) {
+        maxFiles = 0;
+    }
     let checkedFiles = 0;
     $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
         if (checkedFiles < maxFiles && !$(this).hasClass('file-exists')) {
@@ -1074,37 +1078,62 @@ function deselectAllFiles() {
     toggleUpload();
 }
 
+function markExistingSelectedFiles() {
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
+        let row = $(this);
+        let fileName = row.find('.ui-fileupload-filename').text();
+        let existsInDataset = (fileName in existingFiles) || (removeExtension(fileName) in convertedFileNameMap);
+        row.toggleClass('file-exists', existsInDataset);
+        if (existsInDataset) {
+            row.find('input[type="checkbox"]').prop('checked', false);
+        }
+    });
+}
+
 function toggleUpload() {
-    let maxFiles = parseInt($('#maxFilesInput').val());
-    let checkedFiles = $('.ui-fileupload-row').children('input:checked').length;
+    let totalRows = $('.ui-fileupload-row').length;
+    let maxFiles = parseInt($('#maxFilesInput').val(), 10);
+    if (isNaN(maxFiles)) {
+        maxFiles = totalRows;
+    }
+    let checkedFiles = getCheckedFilesCount();
+    let checkedFilesTotalSize = getCheckedFilesTotalSize();
 
     // If the checkbox is being checked and we're already at the max, prevent it
     if (this && this.checked && checkedFiles > maxFiles) {
         this.checked = false;
         checkedFiles--;
+        checkedFilesTotalSize = getCheckedFilesTotalSize();
         addMessage('warn', 'msgMaxFilesReached');
     }
 
     console.log('Checked files: ' + checkedFiles);
 
-    if (checkedFiles !== 0) {
-        if (checkedFiles > maxFiles) {
-            addMessage('warn', 'msgMaxFilesExceeded');
-            $('#upload').addClass('disabled').prop('disabled', true);
-        } else {
-            addUploadButton();
-            addMessage('info', 'msgStartUpload');
-        }
-    } else {
-        if($('.ui-fileupload-row').length > 0) {
-            $('#upload').addClass('disabled').prop('disabled', true);
+    if (totalRows > 0) {
+        addUploadButton();
+    }
+
+    let selectionIsValid = checkedFiles !== 0 && checkedFiles <= maxFiles && canSelectionFitStorageQuota(checkedFilesTotalSize);
+    $('#upload').toggleClass('disabled', !selectionIsValid).prop('disabled', !selectionIsValid);
+
+    if (checkedFiles === 0) {
+        if (totalRows > 0) {
             addMessage('info', 'msgNoFile');
         }
+    } else if (checkedFiles > maxFiles) {
+        addMessage('warn', 'msgMaxFilesExceeded');
+    } else if (!canSelectionFitStorageQuota(checkedFilesTotalSize)) {
+        addMessage('warn', 'msgStorageQuotaExceeded', formatBytes(uploadLimits.storageQuotaRemaining));
+    } else {
+        addMessage('info', 'msgStartUpload');
     }
 }
 
 function startUploads() {
     startUploadsHasBeenCalled = true;
+    // Ensure each upload run starts from a clean batch state.
+    fileList = [];
+    toRegisterFileList = [];
     $('#refreshDataset').addClass('disabled').prop('disabled', true);
     $('#upload').remove();
     // Add a message indicating uploads are in progress
@@ -1271,6 +1300,8 @@ async function directUploadFinished() {
                         } else {
                           addMessage('success', 'msgUploadCompleteNewDraft', datasetUrl);
                         }
+                        toRegisterFileList = [];
+                        fileList = [];
                         startUploadsHasBeenCalled = false;
                         addCloseButton();
                         addRefreshButton();
@@ -1282,6 +1313,8 @@ async function directUploadFinished() {
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
                         addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
+                        toRegisterFileList = [];
+                        fileList = [];
                         startUploadsHasBeenCalled = false;
                         addCloseButton();
                         addRefreshButton();
