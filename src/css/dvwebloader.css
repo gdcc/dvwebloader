@@ -84,7 +84,7 @@ h1 {
     width: 58%;
     display:inline-block;
 }
-.button:disabled {
+.button.disabled {
     background: gray;
     border-color: gray!important;
 }
@@ -103,4 +103,53 @@ h1 {
    border-color: chocolate;
    border-width: 2px;
    border-style: solid;
+}
+
+#refreshDataset {
+  float:right;
+}
+.button {
+  font-size:16px;
+}
+
+.pending {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #007bff;
+    margin: 10px 0;
+}
+
+.spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 3px solid #007bff;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.button-flex-container {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    min-height: 40px;
+}
+
+.button-left {
+    display: flex;
+    align-items: center;
+}
+
+.button-right {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between buttons */
 }

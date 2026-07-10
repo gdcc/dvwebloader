@@ -113,22 +113,13 @@ $(document).ready(function() {
         var files = e.target.files; // FileList
         for (let i = 0; i < files.length; ++i) {
             let f = files[i];
-            console.log('before ' + f.webkitRelativePath);
+            //console.log('before ' + f.webkitRelativePath);
             queueFileForDirectUpload(f);
             console.debug(files[i].webkitRelativePath);
             //              output.innerText  = output.innerText + files[i].webkitRelativePath+"\n";
         }
-        let numExists = $('#filelist>.ui-fileupload-files .file-exists').length;
         let totalFiles = Object.keys(rawFileMap).length;
-        console.log('exists: ' + numExists);
-        console.log('rawFileMap len: ' + totalFiles);
-        if (totalFiles === numExists) {
-            addMessage('info', 'msgFilesAlreadyExist');
-        } else if (numExists !== 0 && totalFiles > numExists) {
-            addMessage('info', 'msgUploadOnlyCheckedFiles');
-        } else (
-          addMessage('info', 'msgStartUpload')
-        )
+        updateFileSelectionMessage();
         $('label.button').hide();
         // Add buttons for selecting/deselecting files
                 $('<div/>')
@@ -156,6 +147,24 @@ $(document).ready(function() {
 
     };
 });
+
+/**
+ * Updates the message displayed to the user based on file selection status
+ */
+function updateFileSelectionMessage() {
+    let numExists = $('#filelist>.ui-fileupload-files .file-exists').length;
+    let totalFiles = Object.keys(rawFileMap).length;
+    console.log('exists: ' + numExists);
+    console.log('rawFileMap len: ' + totalFiles);
+    
+    if (totalFiles === numExists) {
+        addMessage('info', 'msgFilesAlreadyExist');
+    } else if (numExists !== 0 && totalFiles > numExists) {
+        addMessage('info', 'msgUploadOnlyCheckedFiles');
+    } else {
+        addMessage('info', 'msgStartUpload');
+    }
+}
 
 function updateMaxFiles() {
     let maxInput = $('#maxFilesInput');
@@ -254,7 +263,6 @@ function addContentWarning(key, ...keyArgs) {
 async function populatePageMetadata(data) {
     var mdFields = data.metadataBlocks.citation.fields;
     var title = "";
-    var authors = "";
     var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid;
     draftExists = data.latestVersionPublishingState && data.latestVersionPublishingState === "DRAFT";
 
@@ -262,22 +270,17 @@ async function populatePageMetadata(data) {
         if (mdFields[field].typeName === "title") {
             title = mdFields[field].value;
         }
-        if (mdFields[field].typeName === "author") {
-            var authorFields = mdFields[field].value;
-            for (var author in authorFields) {
-                if (authors.length > 0) {
-                    authors = authors + "; ";
-                }
-                authors = authors
-                    + authorFields[author].authorName.value;
-            }
-        }
     }
     let mdDiv = $('<div/>').append($('<h2/>').text(getLocalizedString(dvLocale, 'uploadingTo')).append($('<a/>').prop("href", datasetUrl).prop('target', '_blank').text(title)));
     $('#top').prepend(mdDiv);
 }
 
-async function retrieveDatasetInfo() {
+/**
+ * Refreshes dataset information from Dataverse
+ * @param {boolean} isInitialLoad - Whether this is the initial load or a refresh
+ */
+async function retrieveDatasetInfo(isInitialLoad = true) {
+    addMessage('info', 'msgGettingDatasetInfo');
     try {
         // First, check for dataset locks
         const locksResponse = await $.ajax({
@@ -297,6 +300,7 @@ async function retrieveDatasetInfo() {
         if (locksResponse.data && locksResponse.data.length > 0 && !isLockedInReview) {
             addMessage('error', 'msgDatasetLocked');
             disableUploadFunctionality();
+            addRefreshButton();
             return;
         }
 
@@ -313,6 +317,7 @@ async function retrieveDatasetInfo() {
             if (!permissionsResponse.data || !permissionsResponse.data.canPublishDataset) {
                 addMessage('error', 'msgDatasetLockedInReview');
                 disableUploadFunctionality();
+                addRefreshButton();
                 return;
             }
         }
@@ -329,8 +334,9 @@ async function retrieveDatasetInfo() {
         console.log(datasetResponse);
         let data = datasetResponse.data;
         console.log(data);
-
-        populatePageMetadata(data);
+        if(isInitialLoad) {
+            populatePageMetadata(data);
+        }
         if (data.files !== null) {
             existingFiles = {};
             convertedFileNameMap = {};
@@ -348,7 +354,7 @@ async function retrieveDatasetInfo() {
                 if ('directoryLabel' in entry) {
                     filepath = entry.directoryLabel + '/' + filepath;
                 }
-                console.log("Storing: " + filepath);
+                //console.log("Storing: " + filepath);
                 existingFiles[filepath] = df.checksum;
                 if (convertedFile) {
                     convertedFileNameMap[removeExtension(filepath)] = filepath;
@@ -356,11 +362,112 @@ async function retrieveDatasetInfo() {
             }
         }
         $('#files').prop('disabled', false);
-        addMessage('info', 'msgReadyToStart');
+        if(isInitialLoad || $('#filelist>.ui-fileupload-files').length === 0) {
+            addMessage('info', 'msgReadyToStart');
+            // Add the refresh button after initial load
+            addRefreshButton();
+        }
     } catch (error) {
         console.log('Error:', error);
         addMessage('error', 'msgErrorRetrievingDataset');
+        }
+}
+
+/**
+ * Adds a refresh button to the UI
+ */
+function addRefreshButton() {
+    if ($('#refreshDataset').length === 0) {
+    $('#button-container .button-right').append(
+            $('<button/>')
+            .prop('id', 'refreshDataset')
+            .text(getLocalizedString(dvLocale, 'refreshDataset'))
+            .addClass('button secondary')
+            .click(async function() {
+                if (startUploadsHasBeenCalled) {
+                    //Shouldn't happen - button should be disabled, but let's be conservative
+                    alert("Can't refresh while upload is in progress");
+                } else {
+                    try {
+                        // Call retrieveDatasetInfo with isInitialLoad=false to indicate this is a refresh
+                        await retrieveDatasetInfo(false);
+                        // Only manipulate files if the file list exists and has items
+                        if ($('#filelist>.ui-fileupload-files').length > 0 &&
+                            $('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
+                            removeCloseButton();
+
+                            deselectAllFiles();
+                            selectMaxNewFiles();
+                            // Clear progress bars from previous uploads
+                            $('.ui-fileupload-progress progress').remove();
+                            // Reset any error messages or states
+                            $('.ui-fileupload-error').remove();
+                            addUploadButton();
+                        }
+                    } catch (error) {
+                        console.error('Error refreshing dataset:', error);
+                        addMessage('error', 'msgErrorRefreshingDataset');
+                    }
+                }
+            }));
+    } else {
+        $('#refreshDataset').removeClass('disabled').prop('disabled', false);
     }
+}
+
+/**
+ * Removes the refresh button from the UI
+ */
+function removeRefreshButton() {
+    $('#refreshDataset').remove();
+}
+
+
+/**
+ * Adds a close button to the UI
+ */
+function addCloseButton() {
+    if ($('#closeWebloader').length === 0) {
+    // Add close button
+     $('#button-container .button-left').append($('<button/>')
+         .prop('id', 'closeWebloader')
+         .text(getLocalizedString(dvLocale, 'closeWindow'))
+         .addClass('button secondary')
+        .click(function() {
+            window.close();
+        }));
+    }
+}
+        
+/**
+ * Removes the close button from the UI
+ */
+function removeCloseButton() {
+    $('#closeWebloader').remove();
+}
+
+/**
+ * Adds an upload button to the UI
+ */
+
+function addUploadButton() {
+    if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
+    $('#button-container .button-left').append($('<button/>')
+        .prop('id', 'upload')
+        .text(getLocalizedString(dvLocale, 'startUpload'))
+        .addClass('button')
+        .click(startUploads));
+    } else {
+        $('#upload').removeClass('disabled').prop('disabled', false)
+    }
+    
+}
+
+/**
+ * Removes the upload button from the UI
+ */
+function removeUploadButton() {
+    $('#upload').remove();
 }
 
 function disableUploadFunctionality() {
@@ -489,9 +596,9 @@ var fileUpload = class fileUploadClass {
             dataType: "json",
             processData: false,
             success: function(body, statusText, jqXHR) {
-                console.log(body);
+                //console.log(body);
                 let data = body.data;
-                console.log(data);
+                //console.log(data);
                 this.storageId = data.storageIdentifier;
                 delete data.storageIdentifier;
                 this.urls = data;
@@ -787,18 +894,14 @@ function queueFileForDirectUpload(file) {
     path=path.concat(file.name.replace(/[:<>;#/"*|?\\]/g,'_'));
     
     //Now check versus existing files
-    if (path in existingFiles) {
-        send = false;
-    } else if (removeExtension(path) in convertedFileNameMap) {
+    if ((path in existingFiles) || (removeExtension(path) in convertedFileNameMap)) {
         send = false;
     }
     rawFileMap[origPath] = file;
     let i = rawFileMap.length;
     //startUploads();
     if (send) {
-        if ($('#upload').length === 0) {
-            $('<button/>').prop('id', 'upload').text(getLocalizedString(dvLocale, 'startUpload')).addClass('button').click(startUploads).appendTo($('#top'));
-        }
+        addUploadButton();
     }
     let fileBlock = $('#filelist>.ui-fileupload-files');
     if (fileBlock.length === 0) {
@@ -823,7 +926,6 @@ function queueFileForDirectUpload(file) {
     row.append(fnameElement)
         .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui-fileupload-progress'))
         .append($('<div/>').addClass('ui-fileupload-cancel'));
-    console.log('adding click handler for file_' + fUpload.id);
     $('#file_' + fUpload.id).click(toggleUpload);
 }
 
@@ -840,6 +942,7 @@ function selectMaxNewFiles() {
         }
     });
     toggleUpload();
+    updateFileSelectionMessage();
 }
 
 // Function to deselect all files
@@ -866,26 +969,23 @@ function toggleUpload() {
             addMessage('warn', 'msgMaxFilesExceeded');
             $('#upload').addClass('disabled').prop('disabled', true);
         } else {
-            if ($('#upload').length === 0 && !startUploadsHasBeenCalled) {
-                $('<button/>').prop('id', 'upload')
-                    .text(getLocalizedString(dvLocale, 'startUpload'))
-                    .addClass('button')
-                    .click(startUploads)
-                    .insertBefore($('#messages'));
-            } else {
-                $('#upload').removeClass('disabled').prop('disabled', false);
-            }
+            addUploadButton();
             addMessage('info', 'msgStartUpload');
         }
     } else {
-        $('#upload').addClass('disabled').prop('disabled', true);
-        addMessage('info', 'msgNoFile');
+        if($('.ui-fileupload-row').length > 0) {
+            $('#upload').addClass('disabled').prop('disabled', true);
+            addMessage('info', 'msgNoFile');
+        }
     }
 }
 
 function startUploads() {
     startUploadsHasBeenCalled = true;
-    $('#top button').remove();
+    $('#refreshDataset').addClass('disabled').prop('disabled', true);
+    $('#upload').remove();
+    // Add a message indicating uploads are in progress
+    addMessage('info', 'msgUploadsInProgress');
     let checked = $('#filelist>.ui-fileupload-files input:checked');
     checked.each(function() {
         console.log('Name ' + $(this).siblings('.ui-fileupload-filename').text());
@@ -1001,7 +1101,7 @@ async function directUploadFinished() {
                     //Remove bad file name chars
                     entry.fileName = fup.file.name.replace(/[:<>;#/"*|?\\]/g,'_');
                     let path = fup.file.webkitRelativePath;
-                    console.log(path);
+                    //console.log(path);
                     path = path.substring(path.indexOf('/'), path.lastIndexOf('/'));
                     //Remove bad path chars
                     path = path.replace(/[^\w\-\.\\\/ ]+/g,'_');
@@ -1020,6 +1120,13 @@ async function directUploadFinished() {
                 console.log(JSON.stringify(body));
                 let fd = new FormData();
                 fd.append('jsonData', JSON.stringify(body));
+                
+                // Add a loading indicator before making the AJAX call
+                $('#messages').append($('<div/>').attr('id', 'loading-indicator').addClass('pending')
+                    .html('<div class="spinner"></div>' + formatMessage('msgRegisteringFiles')));
+                // Remove the refresh button when uploads start
+                removeRefreshButton();
+                
                 $.ajax({
                     url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
                     headers: { "X-Dataverse-key": apiKey },
@@ -1031,6 +1138,9 @@ async function directUploadFinished() {
                     data: fd,
                     processData: false,
                     success: function(body, statusText, jqXHR) {
+                        // Remove the loading indicator
+                        $('#loading-indicator').remove();
+                        
                         var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=DRAFT';
                         console.log("All files sent to " + datasetUrl);
                         if(draftExists) {
@@ -1038,12 +1148,20 @@ async function directUploadFinished() {
                         } else {
                           addMessage('success', 'msgUploadCompleteNewDraft', datasetUrl);
                         }
+                        startUploadsHasBeenCalled = false;
+                        addCloseButton();
+                        addRefreshButton();
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
+                        // Remove the loading indicator
+                        $('#loading-indicator').remove();
+                        
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
-                        addMessage("failure", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
-                        //uploadFailure(jqXHR, thisFile);
+                        addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
+                        startUploadsHasBeenCalled = false;
+                        addCloseButton();
+                        addRefreshButton();
                     }
                 });
                 //stop observer when we're done
