@@ -37,7 +37,8 @@ const translations = {
         msgStorageQuotaReached: "Storage quota would be exceeded by this selection. Uncheck some files before selecting more.",
         msgStorageQuotaExceeded: "Selected files exceed remaining storage quota. Uncheck files to enable upload.",
         msgMaxFilesExceededByLimit: "Selected files exceed the remaining upload file limit ({0}).",
-        msgStorageQuotaExceededByLimit: "Selected files exceed the remaining storage quota ({0})."
+        msgStorageQuotaExceededByLimit: "Selected files exceed the remaining storage quota ({0}).",
+        msgProcessingFiles: "Processing files..."
     },
     fr: {
         title: "Envoi d'un dossier",
@@ -76,7 +77,8 @@ const translations = {
         msgStorageQuotaReached: "Le quota de stockage serait dépassé par cette sélection. Décochez des fichiers avant d'en sélectionner d'autres.",
         msgStorageQuotaExceeded: "Les fichiers sélectionnés dépassent le quota de stockage restant. Décochez des fichiers pour activer l'envoi.",
         msgMaxFilesExceededByLimit: "Les fichiers sélectionnés dépassent la limite restante de fichiers ({0}).",
-        msgStorageQuotaExceededByLimit: "Les fichiers sélectionnés dépassent le quota de stockage restant ({0})."
+        msgStorageQuotaExceededByLimit: "Les fichiers sélectionnés dépassent le quota de stockage restant ({0}).",
+        msgProcessingFiles: "Traitement des fichiers..."
     },
 };
 

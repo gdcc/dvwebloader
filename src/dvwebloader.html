@@ -30,25 +30,15 @@
                 </div>
                 <div id='messages'></div>
                 <div id='content-warnings'></div>
+                <div id="pending-spinner" class="pending" style="display: none;">
+                    <div class="spinner"></div>
+                    <span id="pending-text"></span>
+                </div>
             </div>
             <div id="filelist"></div>
             <div id="credit">
                 <a href='https://github.com/gdcc/dvwebloader' target='_blank'>DVWebloader v0.4</a><span id="sponsor-text">, development sponsored by UiT/DataverseNO</span>
             </div>
-            <script>
-                var input = document
-                    .getElementById('files');
-
-                input.onchange = function (e) {
-                    var files = e.target.files; // FileList
-                    for (let i = 0; i < files.length; ++i) {
-                        let f = files[i];
-                        queueFileForDirectUpload(f);
-                        console
-                            .debug(files[i].webkitRelativePath);
-                    }
-                };
-            </script>
         </main>
     </body>
 </html>
