@@ -1,11 +1,13 @@
 import getLocalizedString from './lang.js';
 
 let startUploadsHasBeenCalled = false;
+var isRetrievingDatasetInfo = false;
 var fileList = [];
 var rawFileMap = {};
 var toRegisterFileList = [];
 var observer2 = null;
 var numDone = 0;
+var numDoneCounter = 0;
 var delay = 100; //milliseconds
 var draftExists = false;
 var UploadState = {
@@ -34,18 +36,27 @@ var getUpId = (function() {
     };
 })();
 //How many files are completely done
-var finishFile = (function() {
-    var counter = 0;
-    return function() {
-        counter += 1;
-        return counter;
-    };
-})();
+function finishFile() {
+    numDoneCounter += 1;
+    return numDoneCounter;
+}
+
+/**
+ * Resets the upload state variables and counters
+ */
+function resetUploadState() {
+    toRegisterFileList = [];
+    fileList = [];
+    curFile = 0;
+    numDoneCounter = 0;
+    numDone = 0;
+    filesInProgress = 0;
+}
 var siteUrl;
 var datasetPid;
 var apiKey;
-var existingFiles;
-var convertedFileNameMap;
+var existingFiles = {};
+var convertedFileNameMap = {};
 var queryParams;
 var dvLocale;
 var uploadLimits = {
@@ -66,6 +77,7 @@ $(document).ready(function() {
     dvLocale = queryParams.get("dvLocale");
     console.log('locale: ' + dvLocale);
     directUploadEnabled = true;
+    isRetrievingDatasetInfo = true;
     initTranslation();
     addMessage('info', 'msgGettingDatasetInfo');
     fetch(siteUrl + "/api/files/fixityAlgorithm")
@@ -78,9 +90,13 @@ $(document).ready(function() {
             }
         }).then(checksumAlgJson => {
             checksumAlgName = "MD5";
-            if (checksumAlgJson != null) {
+            if (checksumAlgJson != null && checksumAlgJson.data) {
                 checksumAlgName = checksumAlgJson.data.message;
             }
+        })
+        .catch(error => {
+            console.log("Error fetching fixity algorithm, using MD5: " + error);
+            checksumAlgName = "MD5";
         })
         .then(() => {
             var head = document.getElementsByTagName('head')[0];
@@ -162,7 +178,7 @@ function updateFileSelectionMessage() {
     let totalFiles = Object.keys(rawFileMap).length;
     console.log('exists: ' + numExists);
     console.log('rawFileMap len: ' + totalFiles);
-    
+
     if (totalFiles === numExists) {
         addMessage('info', 'msgFilesAlreadyExist');
     } else if (numExists !== 0 && totalFiles > numExists) {
@@ -249,7 +265,7 @@ function initSpanTxt(htmlId, key) {
 
 function formatMessage(key, keyArgs) {
     let msg = getLocalizedString(dvLocale, key);
-    
+
     if(keyArgs && Array.isArray(keyArgs)) {
         for (var i = 0; i < keyArgs.length; i++) {
             msg = msg.replaceAll('{'+i+'}', keyArgs[i]);
@@ -392,6 +408,11 @@ async function populatePageMetadata(data) {
  * @param {boolean} isInitialLoad - Whether this is the initial load or a refresh
  */
 async function retrieveDatasetInfo(isInitialLoad = true) {
+    isRetrievingDatasetInfo = true;
+    $('#files').prop('disabled', true);
+    if ($('#upload').length > 0) {
+        $('#upload').addClass('disabled').prop('disabled', true);
+    }
     addMessage('info', 'msgGettingDatasetInfo');
     try {
         await fetchUploadLimits();
@@ -414,6 +435,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
             addMessage('error', 'msgDatasetLocked');
             disableUploadFunctionality();
             addRefreshButton();
+            isRetrievingDatasetInfo = false;
             return;
         }
 
@@ -431,6 +453,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
                 addMessage('error', 'msgDatasetLockedInReview');
                 disableUploadFunctionality();
                 addRefreshButton();
+                isRetrievingDatasetInfo = false;
                 return;
             }
         }
@@ -475,21 +498,29 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
             }
         }
         $('#files').prop('disabled', false);
-        addMessage('info', 'msgReadyToStart');
-        addRefreshButton();
-        if(isInitialLoad || $('#filelist>.ui-fileupload-files').length === 0) {
-            updateUploadLimitsMessage();
-        } else {
-            let totalFiles = Object.keys(rawFileMap).length;
-            let effectiveMax = getEffectiveMaxFiles(totalFiles);
-            $('#maxFilesInput').attr('max', effectiveMax);
-            if (parseInt($('#maxFilesInput').val(), 10) > effectiveMax) {
-                $('#maxFilesInput').val(effectiveMax);
-            }
-            updateUploadLimitsMessage();
-            toggleUpload();
+isRetrievingDatasetInfo = false;
+if(isInitialLoad || $('#filelist>.ui-fileupload-files').length === 0) {
+    addMessage('info', 'msgReadyToStart');
+    addRefreshButton();
+} else {
+    let totalFiles = Object.keys(rawFileMap).length;
+    let effectiveMax = getEffectiveMaxFiles(totalFiles);
+    $('#maxFilesInput').attr('max', effectiveMax);
+    if (parseInt($('#maxFilesInput').val(), 10) > effectiveMax) {
+        $('#maxFilesInput').val(effectiveMax);
+    }
+    updateUploadLimitsMessage();
+    toggleUpload();
+}
+        }
+
+        // Refresh listed files in case any were selected before this call finished
+        if ($('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
+            refreshListedFileStates();
         }
     } catch (error) {
+        isRetrievingDatasetInfo = false;
+        $('#files').prop('disabled', false);
         console.log('Error:', error);
         addMessage('error', 'msgErrorRetrievingDataset');
         addRefreshButton();
@@ -514,14 +545,17 @@ function addRefreshButton() {
                     try {
                         // Call retrieveDatasetInfo with isInitialLoad=false to indicate this is a refresh
                         await retrieveDatasetInfo(false);
+
+                        // Clear any previous upload information
+                        resetUploadState();
+
                         // Only manipulate files if the file list exists and has items
                         if ($('#filelist>.ui-fileupload-files').length > 0 &&
                             $('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
                             removeCloseButton();
 
-                            markExistingSelectedFiles();
-                            deselectAllFiles();
-                            selectMaxNewFiles();
+deselectAllFiles();
+selectMaxNewFiles();
                             // Clear progress bars from previous uploads
                             $('.ui-fileupload-progress progress').remove();
                             // Reset any error messages or states
@@ -545,24 +579,22 @@ function addRefreshButton() {
 function removeRefreshButton() {
     $('#refreshDataset').remove();
 }
-
-
 /**
  * Adds a close button to the UI
  */
 function addCloseButton() {
     if ($('#closeWebloader').length === 0) {
     // Add close button
-     $('#button-container .button-left').append($('<button/>')
-         .prop('id', 'closeWebloader')
-         .text(getLocalizedString(dvLocale, 'closeWindow'))
-         .addClass('button secondary')
-        .click(function() {
-            window.close();
-        }));
+        $('#button-container .button-left').append($('<button/>')
+            .prop('id', 'closeWebloader')
+            .text(getLocalizedString(dvLocale, 'closeWindow'))
+            .addClass('button secondary')
+            .click(function() {
+                window.close();
+            }));
     }
 }
-        
+
 /**
  * Removes the close button from the UI
  */
@@ -593,7 +625,6 @@ function addUploadButton() {
 function removeUploadButton() {
     $('#upload').remove();
 }
-
 function disableUploadFunctionality() {
     $('#files').prop('disabled', true);
     $('.file-selection-buttons').hide();
@@ -691,6 +722,70 @@ async function cancelDatasetEdit() {
 
 
 var inDataverseCall = false;
+
+const uploadUrlRateWindowMs = 60 * 1000;
+const uploadUrlMaxRetries = 5;
+const uploadUrlBaseRetryDelayMs = 2000;
+const uploadUrlMaxRetryDelayMs = 60 * 1000;
+var uploadUrlRequestTimestamps = [];
+var uploadUrlCooldownUntil = 0;
+var uploadUrlInterRequestDelayMs = 0;
+var lastUploadUrlRequestTimestamp = 0;
+
+function pruneUploadUrlRequestTimestamps(now = Date.now()) {
+  uploadUrlRequestTimestamps = uploadUrlRequestTimestamps.filter(
+    timestamp => now - timestamp < uploadUrlRateWindowMs
+  );
+}
+
+function getUploadUrlAverageRatePerMinute() {
+  pruneUploadUrlRequestTimestamps();
+  console.log('Upload URL request average rate over last minute: ' + uploadUrlRequestTimestamps.length + '/minute');
+  return uploadUrlRequestTimestamps.length;
+}
+
+function recordUploadUrlRequest() {
+  let now = Date.now();
+  uploadUrlRequestTimestamps.push(now);
+  lastUploadUrlRequestTimestamp = now;
+}
+
+function getRetryAfterDelayMs(jqXHR) {
+  let retryAfter = jqXHR && jqXHR.getResponseHeader ? jqXHR.getResponseHeader('Retry-After') : null;
+
+  if (!retryAfter) {
+    return null;
+  }
+
+  let retryAfterSeconds = parseInt(retryAfter, 10);
+  if (!Number.isNaN(retryAfterSeconds)) {
+    return retryAfterSeconds * 1000;
+  }
+
+  let retryAfterDate = Date.parse(retryAfter);
+  if (!Number.isNaN(retryAfterDate)) {
+    return Math.max(0, retryAfterDate - Date.now());
+  }
+
+  return null;
+}
+
+async function waitForUploadUrlCooldown() {
+  let now = Date.now();
+  let waitMs = Math.max(
+    uploadUrlCooldownUntil - now,
+    (lastUploadUrlRequestTimestamp + uploadUrlInterRequestDelayMs) - now
+  );
+  if (waitMs > 0) {
+    console.log('Waiting ' + waitMs + 'ms before requesting another upload URL (cooldown or rate limiting)');
+    await sleep(waitMs);
+  }
+}
+
+function updateUploadUrlCooldown(delayMs) {
+  uploadUrlCooldownUntil = Math.max(uploadUrlCooldownUntil, Date.now() + delayMs);
+}
+
 var fileUpload = class fileUploadClass {
     constructor(file) {
         this.file = file;
@@ -710,7 +805,10 @@ var fileUpload = class fileUploadClass {
         this.requestDirectUploadUrls();
     }
 
-    async requestDirectUploadUrls() {
+    async requestDirectUploadUrls(retryCount = 0) {
+        await waitForUploadUrlCooldown();
+        recordUploadUrlRequest();
+
         $.ajax({
             url: siteUrl + '/api/datasets/:persistentId/uploadurls?persistentId=' + datasetPid + '&size=' + this.file.size,
             headers: { "X-Dataverse-key": apiKey },
@@ -730,18 +828,53 @@ var fileUpload = class fileUploadClass {
                 this.doUpload();
                 console.log(JSON.stringify(data));
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+                            error: async function(jqXHR, textStatus, errorThrown) {
                 console.log('Failure: ' + jqXHR.status);
                 console.log('Failure: ' + errorThrown);
-                uploadFailure(jqXHR, this.file);
+
+                if (jqXHR.status === 429 && retryCount < uploadUrlMaxRetries && directUploadEnabled) {
+                    let retryAfterDelayMs = getRetryAfterDelayMs(jqXHR);
+
+                    // Recovery wait time for this specific 429 to clear
+                    let recoveryDelayMs = Math.max(
+                        retryAfterDelayMs || 0,
+                        Math.min(uploadUrlBaseRetryDelayMs * Math.pow(2, retryCount), uploadUrlMaxRetryDelayMs)
+                    );
+
+                    // Increase the persistent inter-request delay to slow down future calls
+                    // Adding 50ms to the delay each time a 429 is encountered
+                    uploadUrlInterRequestDelayMs +=50;
+
+                    updateUploadUrlCooldown(recoveryDelayMs);
+
+                    console.log(
+                        'Received 429 while requesting upload URL for ' + this.file.name +
+                        '. Recovery wait: ' + recoveryDelayMs + 'ms. Persistent delay increased to: ' +
+                        uploadUrlInterRequestDelayMs + 'ms. Attempt ' +
+                        (retryCount + 1) + ' of ' + uploadUrlMaxRetries
+                    );
+
+                    await sleep(recoveryDelayMs);
+                    this.requestDirectUploadUrls(retryCount + 1);
+                    return;
+                }
+
+                inDataverseCall = false;
+                // If it hasn't been moved to processing yet, do it now so the count is right
+                if (fileList.indexOf(this) !== -1) {
+                    fileList.splice(fileList.indexOf(this), 1);
+                    curFile = curFile + 1;
+                    filesInProgress = filesInProgress - 1;
+                }
+                uploadFailure(jqXHR, this.id);
             }
         });
     }
 
+
     async doUpload() {
         this.state = UploadState.UPLOADING;
-        var thisFile = curFile;
-        
+
         //This appears to be the earliest point when the file table has been populated, and, since we don't know how many table entries have had ids added already, we check
         var filerows = $('.ui-fileupload-files .ui-fileupload-row');
         //Add an id attribute to each entry so we can later match progress and errors with the right entry
@@ -760,8 +893,17 @@ var fileUpload = class fileUploadClass {
         //Decrement number queued for processing
         console.log('Decrementing fip from :' + filesInProgress);
         filesInProgress = filesInProgress - 1;
-        fileList.splice(fileList.indexOf(this), 1);
+        if (fileList.indexOf(this) !== -1) {
+            fileList.splice(fileList.indexOf(this), 1);
+        }
+        this.thisFileIndex = curFile;
         curFile = curFile + 1;
+
+        this.performActualUpload(fileNode);
+    }
+
+    async performActualUpload(fileNode) {
+        var thisFile = this.thisFileIndex;
         const progBar = fileNode.find('.ui-fileupload-progress');
         const cancelButton = fileNode.find('.ui-fileupload-cancel');
         var cancelled = false;
@@ -771,9 +913,12 @@ var fileUpload = class fileUploadClass {
         progBar.html('');
         progBar.append($('<progress/>').attr('class', 'ui-progressbar ui-widget ui-widget-content ui-corner-all'));
         if (this.urls.hasOwnProperty("url")) {
+            const uploadHeaders = this.urls.url.toLowerCase().includes("x-amz-tagging")
+                ? { "x-amz-tagging": "dv-state=temp" }
+                : {};
             $.ajax({
                 url: this.urls.url,
-                headers: { "x-amz-tagging": "dv-state=temp" },
+                headers: uploadHeaders,
                 type: 'PUT',
                 data: this.file,
                 context: this,
@@ -783,6 +928,8 @@ var fileUpload = class fileUploadClass {
                     //ToDo - cancelling abandons the file. It is marked as temp so can be cleaned up later, but would be good to remove now (requires either sending a presigned delete URL or adding a callback to delete only a temp file
                     if (!cancelled) {
                         this.reportUpload();
+                    } else {
+                        directUploadFinished();
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -905,15 +1052,22 @@ var fileUpload = class fileUploadClass {
         if (!allGood) {
             if (this.alreadyRetried) {
                 console.log('Error after retrying ' + this.file.name);
-                uploadFailure(null, this.file.name);
+                uploadFailure(null, this.id);
                 this.cancelMPUpload();
             } else {
                 this.alreadyRetried = true;
-                this.doUpload();
+                // Don't re-call doUpload() as it manages queue/counts which are already done for this file
+                this.retryMultipartUpload();
             }
         } else {
             this.finishMPUpload();
         }
+    }
+
+    retryMultipartUpload() {
+        var files = $('.ui-fileupload-files');
+        var fileNode = files.find("[upid='file_" + this.id + "']");
+        this.performActualUpload(fileNode);
     }
 
     reportUpload() {
@@ -1003,7 +1157,7 @@ function queueFileForDirectUpload(file) {
     var fUpload = new fileUpload(file);
     let send = true;
     let origPath = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf('/') + 1);
-    
+
     //Remove filename part
     let path =origPath.substring(0, origPath.length - file.name.length);
     let badPath = (path.match(/^[\w\-\.\\\/ ]*$/)===null);
@@ -1016,13 +1170,13 @@ function queueFileForDirectUpload(file) {
     }
     //Re-Add filename, munge filename if needed
     path=path.concat(file.name.replace(/[:<>;#/"*|?\\]/g,'_'));
-    
+
     //Now check versus existing files
     if ((path in existingFiles) || (removeExtension(path) in convertedFileNameMap)) {
         send = false;
     }
     rawFileMap[origPath] = file;
-    let i = rawFileMap.length;
+    let i = Object.keys(rawFileMap).length;
     //startUploads();
     if (send) {
         addUploadButton();
@@ -1139,6 +1293,19 @@ function startUploads() {
     // Add a message indicating uploads are in progress
     addMessage('info', 'msgUploadsInProgress');
     let checked = $('#filelist>.ui-fileupload-files input:checked');
+    if (checked.length === 0) {
+        addMessage('info', 'msgNoFile');
+        return;
+    }
+    startUploadsHasBeenCalled = true;
+    resetUploadState();
+    $('#refreshDataset').addClass('disabled').prop('disabled', true);
+    $('#upload').remove();
+    // Also disable directory selection while uploading
+    $('#files').prop('disabled', true);
+    $('label[for="files"]').addClass('disabled');
+    // Add a message indicating uploads are in progress
+    addMessage('info', 'msgUploadsInProgress');
     checked.each(function() {
         console.log('Name ' + $(this).siblings('.ui-fileupload-filename').text());
         let file = rawFileMap[$(this).siblings('.ui-fileupload-filename').text()];
@@ -1243,6 +1410,13 @@ async function directUploadFinished() {
             if (total === numDone) {
                 //   $('button[id$="AllUploadsFinished"]').trigger('click');
                 console.log("All files in S3");
+                if (toRegisterFileList.length === 0) {
+                    console.log("No files were successfully uploaded to S3.");
+                    startUploadsHasBeenCalled = false;
+                    addRefreshButton();
+                    addMessage('info', 'msgNoFile');
+                    return;
+                }
                 addMessage('info', 'msgUploadCompleteRegistering');
                 let body = [];
                 for (let i = 0; i < toRegisterFileList.length; i++) {
@@ -1272,13 +1446,13 @@ async function directUploadFinished() {
                 console.log(JSON.stringify(body));
                 let fd = new FormData();
                 fd.append('jsonData', JSON.stringify(body));
-                
+
                 // Add a loading indicator before making the AJAX call
                 $('#messages').append($('<div/>').attr('id', 'loading-indicator').addClass('pending')
                     .html('<div class="spinner"></div>' + formatMessage('msgRegisteringFiles')));
                 // Remove the refresh button when uploads start
                 removeRefreshButton();
-                
+
                 $.ajax({
                     url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
                     headers: { "X-Dataverse-key": apiKey },
@@ -1292,7 +1466,7 @@ async function directUploadFinished() {
                     success: function(body, statusText, jqXHR) {
                         // Remove the loading indicator
                         $('#loading-indicator').remove();
-                        
+
                         var datasetUrl = siteUrl + '/dataset.xhtml?persistentId=' + datasetPid + '&version=DRAFT';
                         console.log("All files sent to " + datasetUrl);
                         if(draftExists) {
@@ -1303,18 +1477,23 @@ async function directUploadFinished() {
                         toRegisterFileList = [];
                         fileList = [];
                         startUploadsHasBeenCalled = false;
+                        resetUploadState();
                         addCloseButton();
                         addRefreshButton();
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
                         // Remove the loading indicator
                         $('#loading-indicator').remove();
-                        
+
                         console.log('Failure: ' + jqXHR.status);
                         console.log('Failure: ' + errorThrown);
-                        addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
-                        toRegisterFileList = [];
-                        fileList = [];
+if (jqXHR.status === 504 || textStatus === 'timeout') {
+    addMessage("error", "msgUploadToDataverseTimeout");
+} else {
+    addMessage("error", "msgUploadToDataverseFailed", "Status: " + jqXHR.status + ", Error: " + errorThrown);
+}
+toRegisterFileList = [];
+fileList = [];
                         startUploadsHasBeenCalled = false;
                         addCloseButton();
                         addRefreshButton();
@@ -1336,6 +1515,12 @@ async function directUploadFinished() {
                     }
                 }
             }
+        }
+    } else {
+        // Direct upload was disabled (e.g., cancelled)
+        if (total === numDone) {
+            startUploadsHasBeenCalled = false;
+            addRefreshButton();
         }
     }
     await sleep(delay);
@@ -1365,14 +1550,14 @@ async function uploadFailure(jqXHR, upid, filename) {
     // only one element and that element includes a description of the row involved, including it's upid.
 
     var name = null;
-    var id = null;
+    var id = upid;
     if (jqXHR === null) {
         status = 1; //made up
         statusText = 'Aborting';
+        name = filename;
     } else if ((typeof jqXHR !== 'undefined')) {
         status = jqXHR.status;
         statusText = jqXHR.statusText;
-        id = upid;
         name = filename;
     } else {
         try {
@@ -1403,7 +1588,8 @@ async function uploadFailure(jqXHR, upid, filename) {
     node.appendChild(textnode);
     //Add the error message to the correct row
     for (let i = 0; i < rows.length; i++) {
-        if (rows[i].getAttribute('upid') === id) {
+        let rowUpid = rows[i].getAttribute('upid');
+        if (rowUpid === id || rowUpid === 'file_' + id) {
             //Remove any existing error message/only show last error (have seen two error 0 from one network disconnect)
             var err = rows[i].getElementsByClassName('ui-fileupload-error');
             if (err.length !== 0) {
