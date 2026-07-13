@@ -153,3 +153,34 @@ h1 {
     align-items: center;
     gap: 10px; /* Space between buttons */
 }
+
+.metadata-block {
+    background-color: #DFDFE7;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    color: #000;
+}
+
+.metadata-title {
+    font-weight: bold;
+    font-size: 1.2em;
+    display: block;
+    margin-bottom: 5px;
+    text-decoration: none;
+    color: #0039F5;
+}
+
+.metadata-title:hover {
+    text-decoration: underline;
+}
+
+.metadata-authors {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.metadata-doi {
+    font-size: 0.9em;
+    color: #555;
+}
