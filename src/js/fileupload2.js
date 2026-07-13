@@ -406,12 +406,11 @@ async function populatePageMetadata(data) {
         }
         if (mdFields[field].typeName === "author") {
             var authorFields = mdFields[field].value;
-            for (var author in authorFields) {
+            for (var i = 0; i < authorFields.length; i++) {
                 if (authors.length > 0) {
-                    authors = authors + "; ";
+                    authors = authors.concat("; ");
                 }
-                authors = authors
-                    + authorFields[author].authorName.value;
+                authors = authors.concat(authorFields[i].authorName.value);
             }
         }
     }
@@ -1254,15 +1253,27 @@ function queueFileForDirectUpload(file, fileBlock = null, overrideId = null) {
     if (!send) {
         row.addClass('file-exists');
     }
-    row.append($('<input/>').prop('type', 'checkbox').prop('id', 'file_' + fUpload.id).prop('checked', send));
+    let checkbox = $('<input/>')
+        .prop('type', 'checkbox')
+        .prop('id', 'file_' + fUpload.id)
+        .prop('checked', send)
+        .on('change', toggleUpload);
+
+    row.append(checkbox);
+
     let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(origPath);
     if (badPath || badChars) {
         fnameElement.addClass('badchars');
     }
     row.append(fnameElement)
         .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui-fileupload-progress'))
-        .append($('<div/>').addClass('ui-fileupload-cancel'));
-    $('#file_' + fUpload.id).click(toggleUpload);
+        .append($('<div/>')
+            .addClass('ui-fileupload-cancel')
+            .click(function() {
+                $(this).closest('.ui-fileupload-row').remove();
+                delete rawFileMap[origPath];
+                toggleUpload();
+            }));
 }
 
 // Function to select all files not in dataset
@@ -1307,6 +1318,7 @@ function refreshListedFileStates() {
         }
     });
     selectMaxNewFiles();
+    toggleUpload();
 }
 
 function toggleUpload() {
@@ -1378,9 +1390,6 @@ function startUploads() {
         return;
     }
     startUploadsHasBeenCalled = true;
-    // Ensure each upload run starts from a clean batch state.
-    fileList = [];
-    toRegisterFileList = [];
     resetUploadState();
     $('#refreshDataset').addClass('disabled').prop('disabled', true);
     $('#upload').remove();
@@ -1389,6 +1398,11 @@ function startUploads() {
     $('label[for="files"]').addClass('disabled');
     // Add a message indicating uploads are in progress
     addMessage('info', 'msgUploadsInProgress');
+    let checked = $('#filelist>.ui-fileupload-files input:checked');
+    if (checked.length === 0) {
+        addMessage('info', 'msgNoFile');
+        return;
+    }
     checked.each(function() {
         console.log('Name ' + $(this).siblings('.ui-fileupload-filename').text());
         let file = rawFileMap[$(this).siblings('.ui-fileupload-filename').text()];
