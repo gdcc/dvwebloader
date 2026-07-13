@@ -1390,6 +1390,7 @@ function startUploads() {
         return;
     }
     startUploadsHasBeenCalled = true;
+    // Ensure each upload run starts from a clean batch state.
     resetUploadState();
     $('#refreshDataset').addClass('disabled').prop('disabled', true);
     $('#upload').remove();
@@ -1398,11 +1399,7 @@ function startUploads() {
     $('label[for="files"]').addClass('disabled');
     // Add a message indicating uploads are in progress
     addMessage('info', 'msgUploadsInProgress');
-    let checked = $('#filelist>.ui-fileupload-files input:checked');
-    if (checked.length === 0) {
-        addMessage('info', 'msgNoFile');
-        return;
-    }
+
     checked.each(function() {
         console.log('Name ' + $(this).siblings('.ui-fileupload-filename').text());
         let file = rawFileMap[$(this).siblings('.ui-fileupload-filename').text()];
