@@ -79,7 +79,8 @@ $(document).ready(function() {
     directUploadEnabled = true;
     isRetrievingDatasetInfo = true;
     initTranslation();
-    addMessage('info', 'msgGettingDatasetInfo');
+    $('#pending-text').text(getLocalizedString(dvLocale, 'msgGettingDatasetInfo'));
+    $('#pending-spinner').show();
     fetch(siteUrl + "/api/files/fixityAlgorithm")
         .then((response) => {
             if (!response.ok) {
@@ -140,6 +141,14 @@ $(document).ready(function() {
                 let fileBlock = $('#filelist>.ui-fileupload-files');
                 if (fileBlock.length === 0) {
                     fileBlock = ($('<div/>').addClass('ui-fileupload-files')).appendTo($('#filelist'));
+                    let header = $('<div/>').addClass('ui-fileupload-row ui-fileupload-header').css('font-weight', 'bold');
+                    header.append($('<div/>').text(getLocalizedString(dvLocale, 'labelUpload')))
+                          .append($('<div/>').addClass('ui-fileupload-filename').text(getLocalizedString(dvLocale, 'labelFileName')))
+                          .append($('<div/>').text(getLocalizedString(dvLocale, 'labelFileSize')))
+                          .append($('<div/>').addClass('ui-fileupload-status').text(getLocalizedString(dvLocale, 'labelStatus')))
+                          .append($('<div/>').addClass('ui-fileupload-progress').text(''))
+                          .append($('<div/>').addClass('ui-fileupload-cancel').text(''));
+                    fileBlock.append(header);
                 }
                 let currentCount = fileBlock.children().length;
                 let parent = fileBlock.parent();
@@ -317,8 +326,8 @@ function formatBytes(bytes) {
 
 function getCheckedFilesTotalSize() {
     let totalSize = 0;
-    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
-        let checkbox = $(this).children('input[type="checkbox"]');
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row:not(.ui-fileupload-header)').each(function() {
+        let checkbox = $(this).find('input[type="checkbox"]');
         if (checkbox.prop('checked')) {
             let fileName = $(this).find('.ui-fileupload-filename').text();
             let file = rawFileMap[fileName];
@@ -439,7 +448,6 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
     if ($('#upload').length > 0) {
         $('#upload').addClass('disabled').prop('disabled', true);
     }
-    addMessage('info', 'msgGettingDatasetInfo');
     $('#pending-text').text(getLocalizedString(dvLocale, 'msgGettingDatasetInfo'));
     $('#pending-spinner').show();
     try {
@@ -1264,7 +1272,9 @@ function queueFileForDirectUpload(file, fileBlock = null, overrideId = null) {
         fnameElement.addClass('badchars');
     }
     row.append(fnameElement)
-        .append($('<div/>').text(file.size)).append($('<div/>').addClass('ui-fileupload-progress'))
+        .append($('<div/>').text(formatBytes(file.size)))
+        .append($('<div/>').addClass('ui-fileupload-status').text(send ? '' : getLocalizedString(dvLocale, 'msgFileExists')))
+        .append($('<div/>').addClass('ui-fileupload-progress'))
         .append($('<div/>')
             .addClass('ui-fileupload-cancel')
             .click(function() {
@@ -1282,7 +1292,7 @@ function selectMaxNewFiles() {
     }
     let checkedFiles = 0;
     let currentTotalSize = 0;
-    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row:not(.ui-fileupload-header)').each(function() {
         let row = $(this);
         let fileName = row.find('.ui-fileupload-filename').text();
         let file = rawFileMap[fileName];
@@ -1306,7 +1316,7 @@ function deselectAllFiles() {
 }
 
 function refreshListedFileStates() {
-    $('#filelist>.ui-fileupload-files .ui-fileupload-row').each(function() {
+    $('#filelist>.ui-fileupload-files .ui-fileupload-row:not(.ui-fileupload-header)').each(function() {
         let row = $(this);
         let path = row.attr('data-path');
         let existsInDataset = (path in existingFiles) || (removeExtension(path) in convertedFileNameMap);
@@ -1314,12 +1324,13 @@ function refreshListedFileStates() {
         if (existsInDataset) {
             row.find('input[type="checkbox"]').prop('checked', false);
         }
+        row.find('.ui-fileupload-status').text(existsInDataset ? getLocalizedString(dvLocale, 'msgFileExists') : '');
     });
     toggleUpload();
 }
 
 function toggleUpload() {
-    let totalRows = $('.ui-fileupload-row').length;
+    let totalRows = $('.ui-fileupload-row:not(.ui-fileupload-header)').length;
     let maxFiles = parseInt($('#maxFilesInput').val(), 10);
     if (isNaN(maxFiles)) {
         maxFiles = totalRows;
