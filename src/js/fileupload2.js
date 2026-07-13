@@ -151,7 +151,6 @@ $(document).ready(function() {
                 fileBlock.appendTo(parent);
 
                 let totalFiles = Object.keys(rawFileMap).length;
-                toggleUpload();
                 $('label.button').hide();
                 // Add buttons for selecting/deselecting files
                 if ($('.file-selection-buttons').length === 0) {
@@ -552,7 +551,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
             if (isNaN(oldEffectiveMax) || currentVal >= oldEffectiveMax || currentVal > effectiveMax) {
                 maxInput.val(effectiveMax);
             }
-            toggleUpload();
+            selectMaxNewFiles();
         }
         $('#pending-spinner').hide();
     } catch (error) {
@@ -592,7 +591,6 @@ function addRefreshButton() {
                             $('#filelist>.ui-fileupload-files .ui-fileupload-row').length > 0) {
                             removeCloseButton();
 
-                            refreshListedFileStates();
                             // Clear progress bars from previous uploads
                             $('.ui-fileupload-progress progress').remove();
                             // Reset any error messages or states
@@ -1317,7 +1315,6 @@ function refreshListedFileStates() {
             row.find('input[type="checkbox"]').prop('checked', false);
         }
     });
-    selectMaxNewFiles();
     toggleUpload();
 }
 
