@@ -38,7 +38,12 @@ const translations = {
         msgStorageQuotaExceeded: "Selected files exceed remaining storage quota. Uncheck files to enable upload.",
         msgMaxFilesExceededByLimit: "Selected files exceed the remaining upload file limit ({0}).",
         msgStorageQuotaExceededByLimit: "Selected files exceed the remaining storage quota ({0}).",
-        msgProcessingFiles: "Processing files..."
+        msgProcessingFiles: "Processing files...",
+        labelUpload: "Upload",
+        labelFileName: "Name",
+        labelFileSize: "Size",
+        labelStatus: "Status",
+        msgFileExists: "Exists in dataset"
     },
     fr: {
         title: "Envoi d'un dossier",
@@ -78,7 +83,12 @@ const translations = {
         msgStorageQuotaExceeded: "Les fichiers sélectionnés dépassent le quota de stockage restant. Décochez des fichiers pour activer l'envoi.",
         msgMaxFilesExceededByLimit: "Les fichiers sélectionnés dépassent la limite restante de fichiers ({0}).",
         msgStorageQuotaExceededByLimit: "Les fichiers sélectionnés dépassent le quota de stockage restant ({0}).",
-        msgProcessingFiles: "Traitement des fichiers..."
+        msgProcessingFiles: "Traitement des fichiers...",
+        labelUpload: "Envoyer",
+        labelFileName: "Nom",
+        labelFileSize: "Taille",
+        labelStatus: "Statut",
+        msgFileExists: "Existe dans le jeu de données"
     },
 };
 
