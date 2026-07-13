@@ -163,9 +163,8 @@ $(document).ready(function() {
                 $('label.button').hide();
                 // Add buttons for selecting/deselecting files
                 if ($('.file-selection-buttons').length === 0) {
-                    $('<div/>')
-                      .addClass('file-selection-buttons')
-                      .append($('<button/>')
+                    let selectionButtons = $('<div/>').addClass('file-selection-buttons');
+                    selectionButtons.append($('<button/>')
                         .addClass('button-sm')
                         .text(getLocalizedString(dvLocale, 'msgSelectAllNew'))
                         .click(selectMaxNewFiles))
@@ -182,9 +181,11 @@ $(document).ready(function() {
                         .attr('min', '1')
                         .attr('max', getEffectiveMaxFiles(totalFiles))
                         .attr('value', getEffectiveMaxFiles(totalFiles))
+                        .attr('aria-label', getLocalizedString(dvLocale, 'msgMaxFiles'))
                         .addClass('input-sm')
-                        .on('change', updateMaxFiles))
-                      .insertBefore($('#filelist'));
+                        .on('change', updateMaxFiles));
+                    
+                    selectionButtons.insertBefore($('#filelist'));
                 } else {
                     $('#maxFilesInput').attr('max', getEffectiveMaxFiles(totalFiles)).val(getEffectiveMaxFiles(totalFiles));
                     $('.file-selection-buttons').show();
@@ -1259,13 +1260,19 @@ function queueFileForDirectUpload(file, fileBlock = null, overrideId = null) {
     if (!send) {
         row.addClass('file-exists');
     }
+    let checkboxId = 'file_cb_' + fUpload.id;
     let checkbox = $('<input/>')
         .prop('type', 'checkbox')
-        .prop('id', 'file_' + fUpload.id)
+        .prop('id', checkboxId)
         .prop('checked', send)
         .on('change', toggleUpload);
 
-    row.append(checkbox);
+    let checkboxLabel = $('<label/>')
+        .attr('for', checkboxId)
+        .addClass('sr-only')
+        .text(getLocalizedString(dvLocale, 'labelUpload') + ': ' + origPath);
+
+    row.append(checkbox).append(checkboxLabel);
 
     let fnameElement = $('<div/>').addClass('ui-fileupload-filename').text(origPath);
     if (badPath || badChars) {
