@@ -30,7 +30,15 @@ const translations = {
         msgMaxFilesReached: "Maximum number of files reached. Uncheck some files before selecting more.",
         msgDatasetLocked: "This dataset is currently locked. File uploads are not allowed at this time.",
         msgDatasetLockedInReview: "This dataset is currently In Review. You are not allowed to upload files at this time.",
-        msgErrorRetrievingDataset: "An error occurred while retrieving dataset information."
+        msgErrorRetrievingDataset: "An error occurred while retrieving dataset information.",
+        msgUploadLimits: "Upload limits — files remaining: {0}, storage remaining: {1}.",
+        msgUploadLimitsUnavailable: "Upload limits unavailable. If server-side limits apply, Dataverse may reject excess uploads.",
+        msgUnlimited: "unlimited",
+        msgStorageQuotaReached: "Storage quota would be exceeded by this selection. Uncheck some files before selecting more.",
+        msgStorageQuotaExceeded: "Selected files exceed remaining storage quota. Uncheck files to enable upload.",
+        msgMaxFilesExceededByLimit: "Selected files exceed the remaining upload file limit ({0}).",
+        msgStorageQuotaExceededByLimit: "Selected files exceed the remaining storage quota ({0}).",
+        msgProcessingFiles: "Processing files..."
     },
     fr: {
         title: "Envoi d'un dossier",
@@ -62,7 +70,15 @@ const translations = {
         msgMaxFilesReached: "Nombre maximal de fichiers atteint. Décochez certains fichiers avant d'en sélectionner d'autres.",
         msgDatasetLocked: "Ce jeu de données est actuellement verrouillé. Les envois de fichiers ne sont pas autorisés pour le moment.",
         msgDatasetLockedInReview: "Ce jeu de données est actuellement en cours de révision. Vous n'êtes pas autorisé à télécharger des fichiers pour le moment.",
-        msgErrorRetrievingDataset: "Une erreur s'est produite lors de la récupération des informations du jeu de données."
+        msgErrorRetrievingDataset: "Une erreur s'est produite lors de la récupération des informations du jeu de données.",
+        msgUploadLimits: "Limites d'envoi — fichiers restants : {0}, stockage restant : {1}.",
+        msgUploadLimitsUnavailable: "Limites d'envoi indisponibles. Si des limites côté serveur s'appliquent, Dataverse peut refuser les envois en excès.",
+        msgUnlimited: "illimité",
+        msgStorageQuotaReached: "Le quota de stockage serait dépassé par cette sélection. Décochez des fichiers avant d'en sélectionner d'autres.",
+        msgStorageQuotaExceeded: "Les fichiers sélectionnés dépassent le quota de stockage restant. Décochez des fichiers pour activer l'envoi.",
+        msgMaxFilesExceededByLimit: "Les fichiers sélectionnés dépassent la limite restante de fichiers ({0}).",
+        msgStorageQuotaExceededByLimit: "Les fichiers sélectionnés dépassent le quota de stockage restant ({0}).",
+        msgProcessingFiles: "Traitement des fichiers..."
     },
 };
 
