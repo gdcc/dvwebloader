@@ -364,7 +364,7 @@ async function fetchUploadLimits() {
     uploadLimits.successfullyRetrieved = false;
 
     try {
-        const uploadLimitsResponse = await $.ajax({
+        const uploadLimitsResponse = await ajaxWithRetry({
             url: siteUrl + '/api/datasets/:persistentId/uploadlimits?persistentId=' + datasetPid,
             headers: { "X-Dataverse-key": apiKey },
             type: 'GET',
@@ -455,7 +455,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
         await fetchUploadLimits();
         updateUploadLimitsMessage();
         // First, check for dataset locks
-        const locksResponse = await $.ajax({
+        const locksResponse = await ajaxWithRetry({
             url: siteUrl + '/api/datasets/:persistentId/locks?persistentId=' + datasetPid,
             headers: { "X-Dataverse-key": apiKey },
             type: 'GET',
@@ -480,7 +480,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
 
         // If locked InReview, check user permissions
         if (isLockedInReview) {
-            const permissionsResponse = await $.ajax({
+            const permissionsResponse = await ajaxWithRetry({
                 url: siteUrl + '/api/datasets/:persistentId/userPermissions?persistentId=' + datasetPid,
                 headers: { "X-Dataverse-key": apiKey },
                 type: 'GET',
@@ -499,7 +499,7 @@ async function retrieveDatasetInfo(isInitialLoad = true) {
         }
 
         // If not locked or user has permission, proceed with retrieving dataset info
-        const datasetResponse = await $.ajax({
+        const datasetResponse = await ajaxWithRetry({
             url: siteUrl + '/api/datasets/:persistentId/versions/:latest?persistentId=' + datasetPid,
             headers: { "X-Dataverse-key": apiKey },
             type: 'GET',
@@ -753,6 +753,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+
 async function cancelDatasetCreate() {
     //Page is going away - don't upload any more files, finish reporting current uploads, and then call cancelCreateCommand to clean up temp files
     if (directUploadEnabled) {
@@ -853,6 +854,79 @@ function updateUploadUrlCooldown(delayMs) {
   uploadUrlCooldownUntil = Math.max(uploadUrlCooldownUntil, Date.now() + delayMs);
 }
 
+/**
+ * A wrapper for $.ajax that retries on 50x errors (for S3) or 429 errors (for Dataset API).
+ * @param {Object} options - The same options object as passed to $.ajax
+ * @param {number} retryCount - Current retry count (internal use)
+ * @returns {Promise} - A promise that resolves or rejects based on the ajax call result
+ */
+function ajaxWithRetry(options, retryCount = 0) {
+    const isDatasetApi = options.url.includes('/api/datasets');
+
+    const runAjax = () => {
+        const internalOptions = { ...options };
+        // We handle callbacks manually to control retries
+        delete internalOptions.success;
+        delete internalOptions.error;
+
+        return $.ajax(internalOptions).then(
+            function(data, textStatus, jqXHR) {
+                if (options.success) {
+                    options.success.call(options.context || this, data, textStatus, jqXHR);
+                }
+                return data;
+            },
+            function(jqXHR, textStatus, errorThrown) {
+                const status = jqXHR.status;
+
+                if (isDatasetApi) {
+                    // 429 retry logic for dataset API (but not 50x)
+                    if (status === 429 && retryCount < uploadUrlMaxRetries && directUploadEnabled) {
+                        let retryAfterDelayMs = getRetryAfterDelayMs(jqXHR);
+
+                        // Recovery wait time for this specific 429 to clear
+                        let recoveryDelayMs = Math.max(
+                            retryAfterDelayMs || 0,
+                            Math.min(uploadUrlBaseRetryDelayMs * Math.pow(2, retryCount), uploadUrlMaxRetryDelayMs)
+                        );
+
+                        // Increase the persistent inter-request delay to slow down future calls
+                        uploadUrlInterRequestDelayMs += 50;
+                        updateUploadUrlCooldown(recoveryDelayMs);
+
+                        console.log(`Retrying call to ${options.url} due to 429 in ${recoveryDelayMs}ms (attempt ${retryCount + 1} of ${uploadUrlMaxRetries})`);
+
+                        return sleep(recoveryDelayMs).then(() => ajaxWithRetry(options, retryCount + 1));
+                    }
+                } else {
+                    // 50x retry logic for S3 (but not 429s)
+                    if (status >= 500 && status <= 599 && retryCount < 3) {
+                        const baseDelay = 100;
+                        const delay = retryCount === 0 ? baseDelay : baseDelay * Math.pow(2, retryCount);
+                        console.log(`Retrying call to ${options.url} due to ${status} in ${delay}ms (attempt ${retryCount + 1} of 3)`);
+                        return sleep(delay).then(() => ajaxWithRetry(options, retryCount + 1));
+                    }
+                }
+
+                if (options.error) {
+                    options.error.call(options.context || this, jqXHR, textStatus, errorThrown);
+                }
+                // Propagate the error. Using Deferred to mimic jqXHR rejection if needed
+                return $.Deferred().rejectWith(options.context || this, [jqXHR, textStatus, errorThrown]);
+            }
+        );
+    };
+
+    if (isDatasetApi) {
+        return waitForUploadUrlCooldown().then(() => {
+            recordUploadUrlRequest();
+            return runAjax();
+        });
+    } else {
+        return runAjax();
+    }
+}
+
 var fileUpload = class fileUploadClass {
     constructor(file) {
         this.file = file;
@@ -872,11 +946,8 @@ var fileUpload = class fileUploadClass {
         this.requestDirectUploadUrls();
     }
 
-    async requestDirectUploadUrls(retryCount = 0) {
-        await waitForUploadUrlCooldown();
-        recordUploadUrlRequest();
-
-        $.ajax({
+    requestDirectUploadUrls() {
+        ajaxWithRetry({
             url: siteUrl + '/api/datasets/:persistentId/uploadurls?persistentId=' + datasetPid + '&size=' + this.file.size,
             headers: { "X-Dataverse-key": apiKey },
             type: 'GET',
@@ -895,36 +966,9 @@ var fileUpload = class fileUploadClass {
                 this.doUpload();
                 console.log(JSON.stringify(data));
             },
-                            error: async function(jqXHR, textStatus, errorThrown) {
+            error: function(jqXHR, textStatus, errorThrown) {
                 console.log('Failure: ' + jqXHR.status);
                 console.log('Failure: ' + errorThrown);
-
-                if (jqXHR.status === 429 && retryCount < uploadUrlMaxRetries && directUploadEnabled) {
-                    let retryAfterDelayMs = getRetryAfterDelayMs(jqXHR);
-
-                    // Recovery wait time for this specific 429 to clear
-                    let recoveryDelayMs = Math.max(
-                        retryAfterDelayMs || 0,
-                        Math.min(uploadUrlBaseRetryDelayMs * Math.pow(2, retryCount), uploadUrlMaxRetryDelayMs)
-                    );
-
-                    // Increase the persistent inter-request delay to slow down future calls
-                    // Adding 50ms to the delay each time a 429 is encountered
-                    uploadUrlInterRequestDelayMs +=50;
-
-                    updateUploadUrlCooldown(recoveryDelayMs);
-
-                    console.log(
-                        'Received 429 while requesting upload URL for ' + this.file.name +
-                        '. Recovery wait: ' + recoveryDelayMs + 'ms. Persistent delay increased to: ' +
-                        uploadUrlInterRequestDelayMs + 'ms. Attempt ' +
-                        (retryCount + 1) + ' of ' + uploadUrlMaxRetries
-                    );
-
-                    await sleep(recoveryDelayMs);
-                    this.requestDirectUploadUrls(retryCount + 1);
-                    return;
-                }
 
                 inDataverseCall = false;
                 // If it hasn't been moved to processing yet, do it now so the count is right
@@ -983,7 +1027,7 @@ var fileUpload = class fileUploadClass {
             const uploadHeaders = this.urls.url.toLowerCase().includes("x-amz-tagging")
                 ? { "x-amz-tagging": "dv-state=temp" }
                 : {};
-            $.ajax({
+            ajaxWithRetry({
                 url: this.urls.url,
                 headers: uploadHeaders,
                 type: 'PUT',
@@ -1053,7 +1097,7 @@ var fileUpload = class fileUploadClass {
                     const uploadHeaders = value.toLowerCase().includes("x-amz-tagging")
                         ? { "x-amz-tagging": "dv-state=temp" }
                         : {};
-                    $.ajax({
+                    ajaxWithRetry({
                         url: value,
                         headers: uploadHeaders,
                         type: 'PUT',
@@ -1160,7 +1204,7 @@ var fileUpload = class fileUploadClass {
         }
     }
     async cancelMPUpload() {
-        $.ajax({
+        ajaxWithRetry({
             url: siteUrl + this.urls.abort,
             headers: { "X-Dataverse-key": apiKey },
             type: 'DELETE',
@@ -1181,7 +1225,7 @@ var fileUpload = class fileUploadClass {
         for (var i = 1; i <= this.numEtags; i++) {
             eTagsObject[i] = this.etags[i];
         }
-        $.ajax({
+        ajaxWithRetry({
             url: siteUrl + this.urls.complete,
             type: 'PUT',
             headers: { "X-Dataverse-key": apiKey },
@@ -1562,7 +1606,7 @@ async function directUploadFinished() {
                 // Remove the refresh button when uploads start
                 removeRefreshButton();
 
-                $.ajax({
+                ajaxWithRetry({
                     url: siteUrl + '/api/datasets/:persistentId/addFiles?persistentId=' + datasetPid,
                     headers: { "X-Dataverse-key": apiKey },
                     type: 'POST',
