@@ -1035,7 +1035,6 @@ var fileUpload = class fileUploadClass {
                 context: this,
                 cache: false,
                 processData: false,
-                contentType: false,
                 success: function() {
                     //ToDo - cancelling abandons the file. It is marked as temp so can be cleaned up later, but would be good to remove now (requires either sending a presigned delete URL or adding a callback to delete only a temp file
                     if (!cancelled) {
@@ -1106,7 +1105,6 @@ var fileUpload = class fileUploadClass {
                         context: this,
                         cache: false,
                         processData: false,
-                        contentType: false,
                         success: function(data, status, response) {
                             console.log('Successful upload of part ' + key + ' of ' + Object.keys(this.urls.urls).length);
                             //The header has quotes around the eTag
